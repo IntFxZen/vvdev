@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { getHabits, saveHabits } from '../storage';
 
 const AddHabitScreen = ({ navigation }: any) => {
   const [title, setTitle] = useState('');
@@ -11,8 +12,17 @@ const AddHabitScreen = ({ navigation }: any) => {
       return;
     }
 
+    const currentHabits = getHabits();
 
-    Alert.alert('Успех', `Привычка "${title}" добавлена!`);
+    const newHabit = {
+      id: Date.now().toString(),
+      title: title.trim(),
+      emoji: emoji || '🎯',
+      color: '#E3F2FD',
+      history: [],
+    };
+
+    saveHabits([...currentHabits, newHabit]);
     navigation.goBack();
   };
 
@@ -25,7 +35,6 @@ const AddHabitScreen = ({ navigation }: any) => {
         value={title}
         onChangeText={setTitle}
       />
-
       <Text style={styles.label}>Эмодзи</Text>
       <TextInput
         style={styles.input}
@@ -34,7 +43,6 @@ const AddHabitScreen = ({ navigation }: any) => {
         onChangeText={setEmoji}
         maxLength={2}
       />
-
       <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
         <Text style={styles.saveButtonText}>Добавить</Text>
       </TouchableOpacity>

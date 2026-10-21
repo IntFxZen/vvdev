@@ -1,14 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Habit } from '../types';
+import { getHabits } from '../storage';
 
 const HomeScreen = ({ navigation }: any) => {
+  const [habits, setHabits] = useState<Habit[]>([]);
 
-  const [habits, setHabits] = useState<Habit[]>([
-    { id: '1', title: 'Пить воду', emoji: '💧', color: '#E3F2FD', history: [] },
-    { id: '2', title: 'Читать 30 минут', emoji: '📚', color: '#FFF3E0', history: [] },
-  ]);
 
+  useFocusEffect(
+    useCallback(() => {
+      setHabits(getHabits());
+    }, [])
+  );
 
   const renderItem = ({ item }: { item: Habit }) => (
     <TouchableOpacity
@@ -17,8 +21,6 @@ const HomeScreen = ({ navigation }: any) => {
     >
       <Text style={styles.emoji}>{item.emoji}</Text>
       <Text style={styles.cardTitle}>{item.title}</Text>
-
-
       <View style={styles.checkCircle} />
     </TouchableOpacity>
   );
@@ -35,7 +37,6 @@ const HomeScreen = ({ navigation }: any) => {
           contentContainerStyle={styles.listContainer}
         />
       )}
-
 
       <TouchableOpacity
         style={styles.fab}
