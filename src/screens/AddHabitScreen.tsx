@@ -1,18 +1,47 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import { getHabits, saveHabits } from '../storage';
 import { useTheme } from '../theme/ThemeContext';
+import { monoFont } from '../theme/fonts';
+
+const DURATION_OPTIONS = ['15 MIN', '30 MIN', '60 MIN'];
 
 const AddHabitScreen = ({ navigation }: any) => {
   const { theme, isDark } = useTheme();
   const [title, setTitle] = useState('');
   const [emoji, setEmoji] = useState('🎯');
-  const [time, setTime] = useState('8:00 AM');
+  const [time, setTime] = useState('06:00 AM');
   const [duration, setDuration] = useState('30 min');
+
+  const [isTitleFocused, setIsTitleFocused] = useState(false);
+  const [isEmojiFocused, setIsEmojiFocused] = useState(false);
+  const [isTimeFocused, setIsTimeFocused] = useState(false);
+
+  const subtleBorderColor = isDark ? 'rgba(255, 255, 255, 0.08)' : '#E5E5EA';
+  const focusedBorderColor = isDark ? 'rgba(204, 255, 0, 0.7)' : theme.primary;
+
+  const handleEmojiChange = (text: string) => {
+    const chars = Array.from(text);
+    if (chars.length > 0) {
+      setEmoji(chars[chars.length - 1]);
+    } else {
+      setEmoji('');
+    }
+  };
 
   const handleSave = () => {
     if (title.trim() === '') {
-      Alert.alert('Ошибка', 'Название привычки не может быть пустым');
+      Alert.alert('Habit Name Required', 'Please enter a name for your habit.');
       return;
     }
 
@@ -21,9 +50,9 @@ const AddHabitScreen = ({ navigation }: any) => {
     const newHabit = {
       id: Date.now().toString(),
       title: title.trim(),
-      emoji: emoji || '🎯',
+      emoji: emoji.trim() || '🎯',
       color: '#E3F2FD',
-      time: time.trim() || '8:00 AM',
+      time: time.trim() || '06:00 AM',
       duration: duration.trim() || '30 min',
       history: [],
     };
@@ -33,71 +62,250 @@ const AddHabitScreen = ({ navigation }: any) => {
   };
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={styles.content}>
-      <Text style={[styles.label, { color: theme.text }]}>Название привычки</Text>
-      <TextInput
-        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.card }]}
-        placeholder="Например: MORNING_RUN"
-        placeholderTextColor={theme.textSecondary}
-        value={title}
-        onChangeText={setTitle}
-      />
-
-      <Text style={[styles.label, { color: theme.text }]}>Эмодзи</Text>
-      <TextInput
-        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.card }]}
-        placeholder="Введите эмодзи"
-        placeholderTextColor={theme.textSecondary}
-        value={emoji}
-        onChangeText={setEmoji}
-        maxLength={2}
-      />
-
-      <Text style={[styles.label, { color: theme.text }]}>Время (например: 8:00 AM)</Text>
-      <TextInput
-        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.card }]}
-        placeholder="8:00 AM"
-        placeholderTextColor={theme.textSecondary}
-        value={time}
-        onChangeText={setTime}
-      />
-
-      <Text style={[styles.label, { color: theme.text }]}>Длительность (например: 30 min)</Text>
-      <TextInput
-        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.card }]}
-        placeholder="30 min"
-        placeholderTextColor={theme.textSecondary}
-        value={duration}
-        onChangeText={setDuration}
-      />
-
-      <TouchableOpacity
-        style={[styles.saveButton, { backgroundColor: theme.primary }]}
-        onPress={handleSave}
+    <KeyboardAvoidingView
+      style={[styles.container, { backgroundColor: theme.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <Text style={[styles.saveButtonText, { color: isDark ? '#000000' : '#FFFFFF' }]}>Добавить</Text>
-      </TouchableOpacity>
-    </ScrollView>
+        <Text style={[styles.label, { color: theme.textSecondary }]}>
+          HABIT_NAME
+        </Text>
+        <TextInput
+          style={[
+            styles.input,
+            {
+              color: theme.text,
+              borderColor: isTitleFocused ? focusedBorderColor : subtleBorderColor,
+              borderWidth: isTitleFocused ? 1.5 : 1,
+              backgroundColor: isDark ? '#121212' : '#FFFFFF',
+            },
+          ]}
+          placeholder="e.g. MORNING_RUN"
+          placeholderTextColor={isDark ? '#555555' : '#888888'}
+          value={title}
+          onChangeText={setTitle}
+          onFocus={() => setIsTitleFocused(true)}
+          onBlur={() => setIsTitleFocused(false)}
+        />
+
+        <Text style={[styles.label, { color: theme.textSecondary, marginTop: 20 }]}>
+          EMOJI
+        </Text>
+        <TextInput
+          style={[
+            styles.input,
+            {
+              color: theme.text,
+              borderColor: isEmojiFocused ? focusedBorderColor : subtleBorderColor,
+              borderWidth: isEmojiFocused ? 1.5 : 1,
+              backgroundColor: isDark ? '#121212' : '#FFFFFF',
+            },
+          ]}
+          placeholder="e.g. 🎯"
+          placeholderTextColor={isDark ? '#555555' : '#888888'}
+          value={emoji}
+          onChangeText={handleEmojiChange}
+          onFocus={() => setIsEmojiFocused(true)}
+          onBlur={() => setIsEmojiFocused(false)}
+        />
+
+        <Text style={[styles.label, { color: theme.textSecondary, marginTop: 20 }]}>
+          REMINDER_TIME
+        </Text>
+        <View
+          style={[
+            styles.timeInputContainer,
+            {
+              borderColor: isTimeFocused ? focusedBorderColor : subtleBorderColor,
+              borderWidth: isTimeFocused ? 1.5 : 1,
+              backgroundColor: isDark ? '#121212' : '#FFFFFF',
+            },
+          ]}
+        >
+          <TextInput
+            style={[styles.timeInput, { color: theme.text }]}
+            placeholder="06:00 AM"
+            placeholderTextColor={isDark ? '#555555' : '#888888'}
+            value={time}
+            onChangeText={setTime}
+            onFocus={() => setIsTimeFocused(true)}
+            onBlur={() => setIsTimeFocused(false)}
+          />
+          <Text style={[styles.timeIcon, { color: theme.textSecondary }]}>⏱</Text>
+        </View>
+
+        <Text style={[styles.label, { color: theme.textSecondary, marginTop: 20 }]}>
+          TARGET_DURATION
+        </Text>
+        <View style={styles.optionsRow}>
+          {DURATION_OPTIONS.map((opt) => {
+            const isSelected =
+              duration.toUpperCase() === opt || duration === opt.toLowerCase();
+            const completedBorderColor = isDark
+              ? 'rgba(204, 255, 0, 0.6)'
+              : 'rgba(98, 0, 238, 0.6)';
+
+            return (
+              <TouchableOpacity
+                key={opt}
+                style={[
+                  styles.durationPill,
+                  isSelected
+                    ? {
+                        borderColor: completedBorderColor,
+                        borderWidth: 1.5,
+                        backgroundColor: isDark ? '#0D140A' : '#F4FBF0',
+                      }
+                    : {
+                        borderColor: subtleBorderColor,
+                        borderWidth: 1,
+                        backgroundColor: isDark ? '#161618' : '#FFFFFF',
+                      },
+                ]}
+                onPress={() => setDuration(opt.toLowerCase())}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={[
+                    styles.durationText,
+                    { color: isSelected ? theme.primary : theme.textSecondary },
+                  ]}
+                >
+                  {opt}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        <View style={styles.bottomButtonsContainer}>
+          <TouchableOpacity
+            style={[
+              styles.savePillButton,
+              {
+                backgroundColor: theme.primary,
+              },
+            ]}
+            onPress={handleSave}
+            activeOpacity={0.8}
+          >
+            <Text
+              style={[
+                styles.savePillButtonText,
+                { color: isDark ? '#000000' : '#FFFFFF' },
+              ]}
+            >
+              [ SAVE_HABIT ]
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.cancelPillButton,
+              {
+                backgroundColor: isDark ? '#161618' : '#FFFFFF',
+                borderColor: subtleBorderColor,
+                borderWidth: 1,
+              },
+            ]}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.cancelPillButtonText, { color: theme.textSecondary }]}>
+              CANCEL
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { padding: 20 },
-  label: { fontSize: 14, fontWeight: '600', marginBottom: 8, marginTop: 16 },
+  content: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  label: {
+    fontSize: 11,
+    fontFamily: monoFont,
+    letterSpacing: 1,
+    marginBottom: 8,
+    textTransform: 'uppercase',
+  },
   input: {
     borderWidth: 1,
-    borderRadius: 12,
-    padding: 12,
-    fontSize: 16,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 15,
+    fontFamily: monoFont,
   },
-  saveButton: {
-    padding: 16,
-    borderRadius: 16,
+  timeInputContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 30,
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
-  saveButtonText: { fontSize: 16, fontWeight: 'bold' },
+  timeInput: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: monoFont,
+    padding: 0,
+  },
+  timeIcon: {
+    fontSize: 16,
+    marginLeft: 8,
+  },
+  optionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  durationPill: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 16,
+  },
+  durationText: {
+    fontSize: 13,
+    fontFamily: monoFont,
+    letterSpacing: 0.5,
+  },
+  bottomButtonsContainer: {
+    marginTop: 40,
+    gap: 12,
+  },
+  savePillButton: {
+    paddingVertical: 14,
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  savePillButtonText: {
+    fontSize: 15,
+    fontFamily: monoFont,
+    letterSpacing: 0.5,
+  },
+  cancelPillButton: {
+    paddingVertical: 14,
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelPillButtonText: {
+    fontSize: 13,
+    fontFamily: monoFont,
+    letterSpacing: 1,
+  },
 });
 
 export default AddHabitScreen;
