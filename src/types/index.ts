@@ -4,4 +4,6 @@ export type Habit = {
   emoji: string;
   color: string;
   history: string[];
+  time?: string;
+  duration?: string;
 };

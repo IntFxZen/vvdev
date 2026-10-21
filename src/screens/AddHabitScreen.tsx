@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
 import { getHabits, saveHabits } from '../storage';
+import { useTheme } from '../theme/ThemeContext';
 
 const AddHabitScreen = ({ navigation }: any) => {
+  const { theme, isDark } = useTheme();
   const [title, setTitle] = useState('');
   const [emoji, setEmoji] = useState('🎯');
+  const [time, setTime] = useState('8:00 AM');
+  const [duration, setDuration] = useState('30 min');
 
   const handleSave = () => {
     if (title.trim() === '') {
@@ -19,6 +23,8 @@ const AddHabitScreen = ({ navigation }: any) => {
       title: title.trim(),
       emoji: emoji || '🎯',
       color: '#E3F2FD',
+      time: time.trim() || '8:00 AM',
+      duration: duration.trim() || '30 min',
       history: [],
     };
 
@@ -27,47 +33,71 @@ const AddHabitScreen = ({ navigation }: any) => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.label}>Название привычки</Text>
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={styles.content}>
+      <Text style={[styles.label, { color: theme.text }]}>Название привычки</Text>
       <TextInput
-        style={styles.input}
-        placeholder="Например: Пить воду"
+        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.card }]}
+        placeholder="Например: MORNING_RUN"
+        placeholderTextColor={theme.textSecondary}
         value={title}
         onChangeText={setTitle}
       />
-      <Text style={styles.label}>Эмодзи</Text>
+
+      <Text style={[styles.label, { color: theme.text }]}>Эмодзи</Text>
       <TextInput
-        style={styles.input}
+        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.card }]}
         placeholder="Введите эмодзи"
+        placeholderTextColor={theme.textSecondary}
         value={emoji}
         onChangeText={setEmoji}
         maxLength={2}
       />
-      <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-        <Text style={styles.saveButtonText}>Добавить</Text>
+
+      <Text style={[styles.label, { color: theme.text }]}>Время (например: 8:00 AM)</Text>
+      <TextInput
+        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.card }]}
+        placeholder="8:00 AM"
+        placeholderTextColor={theme.textSecondary}
+        value={time}
+        onChangeText={setTime}
+      />
+
+      <Text style={[styles.label, { color: theme.text }]}>Длительность (например: 30 min)</Text>
+      <TextInput
+        style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.card }]}
+        placeholder="30 min"
+        placeholderTextColor={theme.textSecondary}
+        value={duration}
+        onChangeText={setDuration}
+      />
+
+      <TouchableOpacity
+        style={[styles.saveButton, { backgroundColor: theme.primary }]}
+        onPress={handleSave}
+      >
+        <Text style={[styles.saveButtonText, { color: isDark ? '#000000' : '#FFFFFF' }]}>Добавить</Text>
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: '#fff' },
-  label: { fontSize: 16, fontWeight: '600', marginBottom: 8, marginTop: 16 },
+  container: { flex: 1 },
+  content: { padding: 20 },
+  label: { fontSize: 14, fontWeight: '600', marginBottom: 8, marginTop: 16 },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 12,
     fontSize: 16,
   },
   saveButton: {
-    backgroundColor: '#6200ee',
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 16,
     alignItems: 'center',
     marginTop: 30,
   },
-  saveButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  saveButtonText: { fontSize: 16, fontWeight: 'bold' },
 });
 
 export default AddHabitScreen;

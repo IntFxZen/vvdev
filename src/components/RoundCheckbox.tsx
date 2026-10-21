@@ -1,5 +1,6 @@
 import React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, Text } from 'react-native';
+import { useTheme } from '../theme/ThemeContext';
 
 type Props = {
   isChecked: boolean;
@@ -7,42 +8,45 @@ type Props = {
 };
 
 const RoundCheckbox = ({ isChecked, onPress }: Props) => {
+  const { theme, isDark } = useTheme();
+
   return (
     <Pressable
       onPress={onPress}
-      hitSlop={10} // Увеличиваем зону нажатия
+      hitSlop={10}
       style={({ pressed }) => [
         styles.checkbox,
-        isChecked && styles.checkboxChecked,
-        pressed && { opacity: 0.6 }, // Визуальный отклик на нажатие
+        isChecked
+          ? { backgroundColor: theme.primary, borderColor: theme.primary }
+          : {
+              backgroundColor: isDark ? '#222226' : '#E8E8E8',
+              borderColor: isDark ? '#3A3A3C' : '#D1D1D6',
+            },
+        pressed && { opacity: 0.7 },
       ]}
     >
-      {/* Если выполнено, показываем внутренний белый кружок */}
-      {isChecked && <View style={styles.innerCircle} />}
+      {isChecked && (
+        <Text style={[styles.checkmark, { color: isDark ? '#000000' : '#FFFFFF' }]}>
+          ✓
+        </Text>
+      )}
     </Pressable>
   );
 };
 
 const styles = StyleSheet.create({
   checkbox: {
-    width: 28,
-    height: 28,
-    borderRadius: 14, // Идеальный круг
-    borderWidth: 2,
-    borderColor: '#ccc',
+    width: 26,
+    height: 26,
+    borderRadius: 7,
+    borderWidth: 1.5,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'transparent',
   },
-  checkboxChecked: {
-    backgroundColor: '#6200ee',
-    borderColor: '#6200ee',
-  },
-  innerCircle: {
-    width: 12,
-    height: 12,
-    borderRadius: 6, // Внутренний круг
-    backgroundColor: '#fff',
+  checkmark: {
+    fontSize: 16,
+    fontWeight: '900',
+    lineHeight: 18,
   },
 });
 
