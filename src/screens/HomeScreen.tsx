@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Vibration,
   TextInput,
+  Alert,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Habit } from '../types';
@@ -77,8 +78,6 @@ const HomeScreen = ({ navigation }: any) => {
     year: 'numeric',
   });
 
-  const subtleBorderColor = isDark ? 'rgba(255, 255, 255, 0.08)' : '#E5E5EA';
-
   useLayoutEffect(() => {
     navigation.setOptions({
       headerTitle: formattedDate,
@@ -100,9 +99,9 @@ const HomeScreen = ({ navigation }: any) => {
             style={[
               styles.addButton,
               {
-                backgroundColor: isDark ? '#1C1C1E' : '#E5E5EA',
+                backgroundColor: theme.buttonBackground,
                 borderWidth: 1,
-                borderColor: subtleBorderColor,
+                borderColor: theme.subtleBorder,
               },
             ]}
             onPress={() => navigation.navigate('AddHabit')}
@@ -113,7 +112,7 @@ const HomeScreen = ({ navigation }: any) => {
         </View>
       ),
     });
-  }, [navigation, theme, isDark, toggleTheme, formattedDate, subtleBorderColor]);
+  }, [navigation, theme, isDark, toggleTheme, formattedDate]);
 
   useFocusEffect(
     useCallback(() => {
@@ -159,7 +158,14 @@ const HomeScreen = ({ navigation }: any) => {
 
   const deleteSelectedHabits = () => {
     if (!selectedIds.length) return;
-    removeHabits(selectedIds);
+    const removed = removeHabits(selectedIds);
+    if (!removed) {
+      Alert.alert(
+        'Delete Failed',
+        'We could not delete selected habits right now. Please try again.'
+      );
+      return;
+    }
     setHabits(getHabits());
     clearSelection();
   };
@@ -190,8 +196,8 @@ const HomeScreen = ({ navigation }: any) => {
             styles.statCard,
             styles.streakCard,
             {
-              borderColor: isDark ? 'rgba(204, 255, 0, 0.45)' : 'rgba(98, 0, 238, 0.45)',
-              backgroundColor: isDark ? '#0D140A' : '#F4FBF0',
+              borderColor: theme.streakBorder,
+              backgroundColor: theme.streakCardBg,
             },
           ]}
         >
@@ -205,9 +211,9 @@ const HomeScreen = ({ navigation }: any) => {
           style={[
             styles.statCard,
             {
-              backgroundColor: isDark ? '#1C1C1E' : '#E5E5EA',
+              backgroundColor: theme.cardCompleted,
               borderWidth: 1,
-              borderColor: subtleBorderColor,
+              borderColor: theme.subtleBorder,
             },
           ]}
         >
@@ -232,12 +238,11 @@ const HomeScreen = ({ navigation }: any) => {
         ? `${item.time}`
         : '8:00 AM · 30 min';
 
-    const completedBorderColor = isDark ? theme.primary : 'rgba(98, 0, 238, 0.35)';
     const cardBackground = selectionMode
-      ? (isDark ? '#161618' : '#FFFFFF')
-      : isDark
-      ? '#161618'
-      : isCompletedToday ? '#F4FBF0' : '#FFFFFF';
+      ? theme.card
+      : isCompletedToday
+      ? theme.cardCompleted
+      : theme.cardPending;
 
     return (
       <TouchableOpacity
@@ -247,8 +252,8 @@ const HomeScreen = ({ navigation }: any) => {
           {
             borderWidth: 0.8,
             borderColor: selectionMode
-              ? (isSelected ? '#FF3B30' : subtleBorderColor)
-              : isCompletedToday ? completedBorderColor : subtleBorderColor,
+              ? (isSelected ? theme.selectedCardBorder : theme.subtleBorder)
+              : isCompletedToday ? theme.completedBorder : theme.subtleBorder,
             backgroundColor: cardBackground,
           },
         ]}
@@ -294,17 +299,11 @@ const HomeScreen = ({ navigation }: any) => {
           <TouchableOpacity
             style={[
               styles.statusBadge,
-              isCompletedToday
-                ? {
-                    backgroundColor: isDark
-                      ? 'rgba(204, 255, 0, 0.12)'
-                      : 'rgba(98, 0, 238, 0.12)',
-                  }
-                : {
-                    backgroundColor: isDark
-                      ? 'rgba(255, 149, 0, 0.12)'
-                      : 'rgba(255, 149, 0, 0.15)',
-                  },
+              {
+                backgroundColor: isCompletedToday
+                  ? theme.doneBadgeBg
+                  : theme.pendingBadgeBg,
+              },
             ]}
             onPress={() => toggleHabit(item.id)}
             activeOpacity={0.7}
@@ -312,7 +311,11 @@ const HomeScreen = ({ navigation }: any) => {
             <Text
               style={[
                 styles.statusBadgeText,
-                { color: isCompletedToday ? theme.primary : '#FF9500' },
+                {
+                  color: isCompletedToday
+                    ? theme.doneBadgeText
+                    : theme.pendingBadgeText,
+                },
               ]}
             >
               {isCompletedToday ? '[DONE]' : '[PENDING]'}
@@ -330,8 +333,8 @@ const HomeScreen = ({ navigation }: any) => {
           style={[
             styles.selectionBar,
             {
-              backgroundColor: isDark ? 'rgba(0, 0, 0, 0.86)' : 'rgba(255, 255, 255, 0.96)',
-              borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+              backgroundColor: theme.selectionBarBg,
+              borderColor: theme.selectionBarBorder,
             },
           ]}
         >
@@ -340,17 +343,17 @@ const HomeScreen = ({ navigation }: any) => {
           </Text>
           <View style={styles.selectionActions}>
             <TouchableOpacity
-              style={[styles.selectionAction, { backgroundColor: isDark ? '#1C1C1E' : '#E5E5EA' }]}
+              style={[styles.selectionAction, { backgroundColor: theme.buttonBackground }]}
               onPress={clearSelection}
             >
               <Text style={[styles.selectionActionText, { color: theme.text }]}>CANCEL</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.selectionAction, { backgroundColor: '#FF3B30' }]}
+              style={[styles.selectionAction, { backgroundColor: theme.deleteButtonBg }]}
               onPress={deleteSelectedHabits}
               disabled={!selectedIds.length}
             >
-              <Text style={[styles.selectionActionText, { color: '#FFFFFF' }]}>DELETE</Text>
+              <Text style={[styles.selectionActionText, { color: theme.deleteButtonText }]}>DELETE</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -360,8 +363,8 @@ const HomeScreen = ({ navigation }: any) => {
         style={[
           styles.searchRow,
           {
-            backgroundColor: isDark ? '#161618' : '#FFFFFF',
-            borderColor: subtleBorderColor,
+            backgroundColor: theme.card,
+            borderColor: theme.subtleBorder,
           },
         ]}
       >
@@ -382,7 +385,7 @@ const HomeScreen = ({ navigation }: any) => {
         <TouchableOpacity
           style={[
             styles.filterChip,
-            completionFilter === 'all' && { backgroundColor: isDark ? '#1C1C1E' : '#E5E5EA' },
+            completionFilter === 'all' && { backgroundColor: theme.buttonBackground },
           ]}
           onPress={() => setCompletionFilter('all')}
         >
@@ -391,19 +394,24 @@ const HomeScreen = ({ navigation }: any) => {
         <TouchableOpacity
           style={[
             styles.filterChip,
-            completionFilter === 'done' && { backgroundColor: isDark ? 'rgba(204, 255, 0, 0.16)' : 'rgba(98, 0, 238, 0.12)' },
+            completionFilter === 'done' && { backgroundColor: theme.doneBadgeBg },
           ]}
           onPress={() => setCompletionFilter('done')}
         >
-          <Text style={[styles.filterChipText, { color: completionFilter === 'done' ? theme.primary : theme.text }]}>DONE</Text>
+          <Text
+            style={[
+              styles.filterChipText,
+              { color: completionFilter === 'done' ? theme.primary : theme.text },
+            ]}
+          >
+            DONE
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[
             styles.filterChip,
             completionFilter === 'pending' && {
-              backgroundColor: isDark
-                ? 'rgba(255, 149, 0, 0.12)'
-                : 'rgba(255, 149, 0, 0.15)',
+              backgroundColor: theme.pendingBadgeBg,
             },
           ]}
           onPress={() => setCompletionFilter('pending')}
@@ -411,7 +419,11 @@ const HomeScreen = ({ navigation }: any) => {
           <Text
             style={[
               styles.filterChipText,
-              { color: completionFilter === 'pending' ? '#FF9500' : theme.text },
+              {
+                color: completionFilter === 'pending'
+                  ? theme.pendingBadgeText
+                  : theme.text,
+              },
             ]}
           >
             PENDING
@@ -580,8 +592,6 @@ const styles = StyleSheet.create({
     zIndex: 10,
     padding: 16,
     borderBottomWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
   },
   selectionText: {
     fontSize: 14,
