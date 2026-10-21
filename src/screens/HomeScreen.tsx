@@ -1,12 +1,27 @@
 import React, { useState, useCallback, useLayoutEffect, useMemo } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Dimensions, Vibration } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Heatmap } from '@dt-workspace/react-native-heatmap';
 import { Habit } from '../types';
-import { getHabits, saveHabits } from '../storage';
+import { getHabits, saveHabits, removeHabits } from '../storage';
 import RoundCheckbox from '../components/RoundCheckbox';
 import { useTheme } from '../theme/ThemeContext';
 import { monoFont } from '../theme/fonts';
+
+const formatLocalDateKey = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getSundayOfCurrentWeek = (date: Date): Date => {
+  const next = new Date(date);
+  next.setHours(0, 0, 0, 0);
+  const diff = next.getDay();
+  next.setDate(next.getDate() - diff);
+  return next;
+};
 
 const calculateStreak = (habits: Habit[]): number => {
   if (habits.length === 0) return 0;
@@ -18,18 +33,18 @@ const calculateStreak = (habits: Habit[]): number => {
 
     let currentHabitStreak = 0;
     let checkDate = new Date();
-    const checkDateStr = checkDate.toISOString().split('T')[0];
+    const checkDateStr = formatLocalDateKey(checkDate);
     let isDone = habit.history.includes(checkDateStr);
 
     if (!isDone) {
       checkDate.setDate(checkDate.getDate() - 1);
-      const yesterdayStr = checkDate.toISOString().split('T')[0];
+      const yesterdayStr = formatLocalDateKey(checkDate);
       isDone = habit.history.includes(yesterdayStr);
     }
 
     if (isDone) {
       while (true) {
-        const dateStr = checkDate.toISOString().split('T')[0];
+        const dateStr = formatLocalDateKey(checkDate);
         if (habit.history.includes(dateStr)) {
           currentHabitStreak++;
           checkDate.setDate(checkDate.getDate() - 1);
@@ -50,22 +65,28 @@ const calculateStreak = (habits: Habit[]): number => {
 const HomeScreen = ({ navigation }: any) => {
   const { theme, isDark, toggleTheme } = useTheme();
   const [habits, setHabits] = useState<Habit[]>([]);
-  const today = new Date().toISOString().split('T')[0];
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const today = new Date();
+  const todayDate = formatLocalDateKey(today);
   const heatmapWidth = Dimensions.get('window').width - 64;
   const heatmapWeeks = 18;
   const heatmapCellSpacing = 3;
-  const heatmapCellSize = useMemo(() => {
-    const innerWidth = heatmapWidth - (heatmapWeeks - 1) * heatmapCellSpacing;
-    return Math.max(8, Math.floor(innerWidth / heatmapWeeks));
-  }, [heatmapWidth]);
+  const heatmapCellSize = Math.max(8, Math.floor((heatmapWidth - (heatmapWeeks - 1) * heatmapCellSpacing) / heatmapWeeks));
 
-  const formattedDate = useMemo(() => {
-    return new Date().toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  }, []);
+  const sundayOfCurrentWeek = getSundayOfCurrentWeek(today);
+
+  const heatmapStartDate = new Date(sundayOfCurrentWeek);
+  heatmapStartDate.setDate(heatmapStartDate.getDate() - (heatmapWeeks - 1) * 7);
+
+  const heatmapEndDate = new Date(today);
+  heatmapEndDate.setHours(0, 0, 0, 0);
+
+  const formattedDate = new Date().toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
 
   const subtleBorderColor = isDark ? 'rgba(255, 255, 255, 0.08)' : '#E5E5EA';
 
@@ -115,10 +136,10 @@ const HomeScreen = ({ navigation }: any) => {
     const currentHabits = getHabits();
     const updatedHabits = currentHabits.map((habit) => {
       if (habit.id === id) {
-        const isCompletedToday = habit.history.includes(today);
+        const isCompletedToday = habit.history.includes(todayDate);
         const newHistory = isCompletedToday
-          ? habit.history.filter((date) => date !== today)
-          : [...habit.history, today];
+          ? habit.history.filter((date) => date !== todayDate)
+          : [...habit.history, todayDate];
         return { ...habit, history: newHistory };
       }
       return habit;
@@ -127,19 +148,42 @@ const HomeScreen = ({ navigation }: any) => {
     setHabits(updatedHabits);
   };
 
+  const toggleSelection = (id: string) => {
+    setSelectedIds((current) =>
+      current.includes(id)
+        ? current.filter((itemId) => itemId !== id)
+        : [...current, id]
+    );
+  };
+
+  const startSelection = (id?: string) => {
+    setSelectionMode(true);
+    if (id) {
+      setSelectedIds((current) => (current.includes(id) ? current : [...current, id]));
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectionMode(false);
+    setSelectedIds([]);
+  };
+
+  const deleteSelectedHabits = () => {
+    if (!selectedIds.length) return;
+    removeHabits(selectedIds);
+    setHabits(getHabits());
+    clearSelection();
+  };
+
   const streak = calculateStreak(habits);
-  const doneTodayCount = habits.filter((h) => h.history.includes(today)).length;
+  const doneTodayCount = habits.filter((h) => h.history.includes(todayDate)).length;
 
   const heatmapData = useMemo(() => {
     const days: { date: string; value: number }[] = [];
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - 125);
+    const current = new Date(heatmapStartDate);
 
-    for (let i = 0; i < 126; i++) {
-      const current = new Date(startDate);
-      current.setDate(startDate.getDate() + i);
-      const dateStr = current.toISOString().split('T')[0];
-
+    while (current <= heatmapEndDate) {
+      const dateStr = formatLocalDateKey(current);
       const doneCount = habits.filter((habit) => habit.history?.includes(dateStr)).length;
       let value = 0;
 
@@ -149,30 +193,25 @@ const HomeScreen = ({ navigation }: any) => {
       else if (doneCount === 1) value = 1;
 
       days.push({ date: dateStr, value });
+      current.setDate(current.getDate() + 1);
     }
 
     return days;
-  }, [habits]);
+  }, [habits, heatmapStartDate, heatmapEndDate]);
 
-  const heatmapColorScheme = useMemo(
-    () =>
-      isDark
-        ? {
-            name: 'habit-dark',
-            colors: ['#222126', '#2F3A0A', '#5B7F00', '#9BDD00', '#CCFF00'],
-            emptyColor: '#222126',
-          }
-        : {
-            name: 'habit-light',
-            colors: ['#F7F2FB', '#F2D7FF', '#D59DFF', '#8B50FF', '#6200EE'],
-            emptyColor: '#EFEAF7',
-          },
-    [isDark]
-  );
+  const heatmapColorScheme = isDark
+    ? {
+        name: 'habit-dark',
+        colors: ['#1E2328', '#2B3F12', '#4B6E00', '#8ECF00', '#CCFF00'],
+        emptyColor: '#222126',
+      }
+    : {
+        name: 'habit-light',
+        colors: ['#F4EBFF', '#E8D5FF', '#D59DFF', '#8B50FF', '#6200EE'],
+        emptyColor: '#EFEAF7',
+      };
 
-  const currentMonthYear = useMemo(() => {
-    return new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase();
-  }, []);
+  const currentMonthYear = new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase();
 
   const renderHeader = () => (
     <View style={styles.headerSection}>
@@ -214,7 +253,7 @@ const HomeScreen = ({ navigation }: any) => {
         style={[
           styles.heatmapCard,
           {
-            backgroundColor: isDark ? '#121212' : '#FFFFFF',
+            backgroundColor: isDark ? '#161618' : '#E5E5EA',
             borderColor: subtleBorderColor,
             borderWidth: 1,
           },
@@ -227,8 +266,8 @@ const HomeScreen = ({ navigation }: any) => {
 
         <Heatmap
           data={heatmapData}
-          startDate={new Date(Date.now() - 125 * 24 * 60 * 60 * 1000)}
-          endDate={new Date()}
+          startDate={heatmapStartDate}
+          endDate={heatmapEndDate}
           width={heatmapWidth}
           height={heatmapCellSize * 7 + (7 - 1) * heatmapCellSpacing + 8}
           cellSize={heatmapCellSize}
@@ -263,7 +302,8 @@ const HomeScreen = ({ navigation }: any) => {
   );
 
   const renderItem = ({ item }: { item: Habit }) => {
-    const isCompletedToday = item.history.includes(today);
+    const isSelected = selectedIds.includes(item.id);
+    const isCompletedToday = item.history.includes(todayDate);
     const formattedTitle = (item.title || '').toUpperCase().replace(/\s+/g, '_');
     const timeSubtitle = item.time && item.duration
       ? `${item.time} · ${item.duration}`
@@ -272,7 +312,9 @@ const HomeScreen = ({ navigation }: any) => {
         : '8:00 AM · 30 min';
 
     const completedBorderColor = isDark ? theme.primary : 'rgba(98, 0, 238, 0.35)';
-    const cardBackground = isDark
+    const cardBackground = selectionMode
+      ? (isDark ? '#161618' : '#FFFFFF')
+      : isDark
       ? '#161618'
       : isCompletedToday ? '#F4FBF0' : '#FFFFFF';
 
@@ -283,21 +325,38 @@ const HomeScreen = ({ navigation }: any) => {
           styles.card,
           {
             borderWidth: 0.8,
-            borderColor: isCompletedToday ? completedBorderColor : subtleBorderColor,
+            borderColor: selectionMode
+              ? (isSelected ? '#FF3B30' : subtleBorderColor)
+              : isCompletedToday ? completedBorderColor : subtleBorderColor,
             backgroundColor: cardBackground,
           },
         ]}
-        onPress={() =>
+        onPress={() => {
+          if (selectionMode) {
+            toggleSelection(item.id);
+            return;
+          }
           navigation.navigate('HabitDetails', {
             habitTitle: item.title,
             habitId: item.id,
-          })
-        }
+          });
+        }}
+        onLongPress={() => {
+          startSelection(item.id);
+          Vibration.vibrate(10);
+        }}
       >
         <View style={styles.checkboxWrapper}>
           <RoundCheckbox
-            isChecked={isCompletedToday}
-            onPress={() => toggleHabit(item.id)}
+            isChecked={selectionMode ? isSelected : isCompletedToday}
+            variant={selectionMode ? 'delete' : 'check'}
+            onPress={() => {
+              if (selectionMode) {
+                toggleSelection(item.id);
+                return;
+              }
+              toggleHabit(item.id);
+            }}
           />
         </View>
 
@@ -310,39 +369,72 @@ const HomeScreen = ({ navigation }: any) => {
           </Text>
         </View>
 
-        <TouchableOpacity
-          style={[
-            styles.statusBadge,
-            isCompletedToday
-              ? {
-                  backgroundColor: isDark
-                    ? 'rgba(204, 255, 0, 0.12)'
-                    : 'rgba(98, 0, 238, 0.12)',
-                }
-              : {
-                  backgroundColor: isDark
-                    ? 'rgba(255, 149, 0, 0.12)'
-                    : 'rgba(255, 149, 0, 0.15)',
-                },
-          ]}
-          onPress={() => toggleHabit(item.id)}
-          activeOpacity={0.7}
-        >
-          <Text
+        {!selectionMode && (
+          <TouchableOpacity
             style={[
-              styles.statusBadgeText,
-              { color: isCompletedToday ? theme.primary : '#FF9500' },
+              styles.statusBadge,
+              isCompletedToday
+                ? {
+                    backgroundColor: isDark
+                      ? 'rgba(204, 255, 0, 0.12)'
+                      : 'rgba(98, 0, 238, 0.12)',
+                  }
+                : {
+                    backgroundColor: isDark
+                      ? 'rgba(255, 149, 0, 0.12)'
+                      : 'rgba(255, 149, 0, 0.15)',
+                  },
             ]}
+            onPress={() => toggleHabit(item.id)}
+            activeOpacity={0.7}
           >
-            {isCompletedToday ? '[DONE]' : '[PENDING]'}
-          </Text>
-        </TouchableOpacity>
+            <Text
+              style={[
+                styles.statusBadgeText,
+                { color: isCompletedToday ? theme.primary : '#FF9500' },
+              ]}
+            >
+              {isCompletedToday ? '[DONE]' : '[PENDING]'}
+            </Text>
+          </TouchableOpacity>
+        )}
       </TouchableOpacity>
     );
   };
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
+      {selectionMode && (
+        <View
+          style={[
+            styles.selectionBar,
+            {
+              backgroundColor: isDark ? 'rgba(0, 0, 0, 0.86)' : 'rgba(255, 255, 255, 0.96)',
+              borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+            },
+          ]}
+        >
+          <Text style={[styles.selectionText, { color: theme.textSecondary }]}>
+            {selectedIds.length} selected
+          </Text>
+          <View style={styles.selectionActions}>
+            <TouchableOpacity
+              style={[styles.selectionAction, { backgroundColor: isDark ? '#1C1C1E' : '#E5E5EA' }]}
+              onPress={clearSelection}
+            >
+              <Text style={[styles.selectionActionText, { color: theme.text }]}>CANCEL</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.selectionAction, { backgroundColor: '#FF3B30' }]}
+              onPress={deleteSelectedHabits}
+              disabled={!selectedIds.length}
+            >
+              <Text style={[styles.selectionActionText, { color: '#FFFFFF' }]}>DELETE</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
       <FlatList
         data={habits}
         keyExtractor={(item) => item.id}
@@ -479,7 +571,37 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: monoFont,
   },
+  selectionBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    padding: 16,
+    borderBottomWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  },
+  selectionText: {
+    fontSize: 14,
+    fontFamily: monoFont,
+    marginBottom: 8,
+  },
+  selectionActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  selectionAction: {
+    flex: 1,
+    borderRadius: 16,
+    paddingVertical: 10,
+    marginHorizontal: 4,
+  },
+  selectionActionText: {
+    fontSize: 14,
+    fontFamily: monoFont,
+    textAlign: 'center',
+  },
 });
 
 export default HomeScreen;
-

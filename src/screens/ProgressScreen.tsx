@@ -11,6 +11,13 @@ import { Habit } from '../types';
 import { useTheme } from '../theme/ThemeContext';
 import { monoFont } from '../theme/fonts';
 
+const formatDateKey = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const calculateStreak = (habits: Habit[]): number => {
   if (habits.length === 0) return 0;
   let maxStreak = 0;
@@ -146,6 +153,42 @@ const ProgressScreen = () => {
     return days;
   }, []);
 
+  const activityByDate = useMemo(() => {
+    const map: Record<string, number> = {};
+
+    habits.forEach((habit) => {
+      habit.history?.forEach((dateStr) => {
+        const nextValue = (map[dateStr] || 0) + 1;
+        map[dateStr] = Math.min(nextValue, 3);
+      });
+    });
+
+    return map;
+  }, [habits]);
+
+  const heatmapData = useMemo(() => {
+    const today = new Date();
+    const data: Record<string, number> = {};
+    const startDate = new Date(today);
+    startDate.setDate(today.getDate() - 363);
+
+    for (let i = 0; i < 364; i++) {
+      const current = new Date(startDate);
+      current.setDate(startDate.getDate() + i);
+      const key = formatDateKey(current);
+      data[key] = Math.min(activityByDate[key] || 0, 3);
+    }
+
+    return data;
+  }, [activityByDate]);
+
+  const heatmapStart = useMemo(() => {
+    const start = new Date();
+    start.setDate(start.getDate() - 363);
+    start.setHours(0, 0, 0, 0);
+    return start;
+  }, []);
+
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: theme.background }]}
@@ -242,71 +285,38 @@ const ProgressScreen = () => {
           },
         ]}
       >
-        <View style={styles.fullMatrixContainer}>
-          {matrixColumns.map((col, colIdx) => (
-            <View key={`col-${colIdx}`} style={styles.fullMatrixColumn}>
-              {col.map((dayData) => {
-                let squareBg = isDark ? '#222226' : '#EAEAEA';
-                if (dayData.intensity === 1) {
-                  squareBg = isDark ? 'rgba(204, 255, 0, 0.35)' : 'rgba(98, 0, 238, 0.35)';
-                } else if (dayData.intensity === 2) {
-                  squareBg = isDark ? 'rgba(204, 255, 0, 0.7)' : 'rgba(98, 0, 238, 0.7)';
-                } else if (dayData.intensity === 3) {
-                  squareBg = theme.primary;
-                }
-
-                return (
-                  <View
-                    key={dayData.dateStr}
-                    style={[
-                      styles.fullMatrixSquare,
-                      { backgroundColor: squareBg },
-                    ]}
-                  />
-                );
-              })}
-            </View>
-          ))}
-        </View>
-
-        <View style={styles.intensityRow}>
-          <Text style={[styles.intensityLabel, { color: theme.textSecondary }]}>
-            INTENSITY:
-          </Text>
-          <View
-            style={[
-              styles.intensitySquare,
-              { backgroundColor: isDark ? '#222226' : '#EAEAEA' },
-            ]}
-          />
-          <View
-            style={[
-              styles.intensitySquare,
-              {
-                backgroundColor: isDark
-                  ? 'rgba(204, 255, 0, 0.35)'
-                  : 'rgba(98, 0, 238, 0.35)',
-              },
-            ]}
-          />
-          <View
-            style={[
-              styles.intensitySquare,
-              {
-                backgroundColor: isDark
-                  ? 'rgba(204, 255, 0, 0.7)'
-                  : 'rgba(98, 0, 238, 0.7)',
-              },
-            ]}
-          />
-          <View
-            style={[styles.intensitySquare, { backgroundColor: theme.primary }]}
-          />
-          <Text style={[styles.intensityText, { color: theme.textSecondary }]}>
-            NONE
-          </Text>
-          <Text style={[styles.intensityText, { color: theme.primary }]}>FULL</Text>
-        </View>
+        <WeeklyHeatMap
+          data={heatmapData}
+          startDate={heatmapStart}
+          endDate={new Date()}
+          theme={{
+            scheme: isDark ? 'dark' : 'light',
+            cellDefaultColor: isDark ? '#1F1F22' : '#EAEAEA',
+            cellTextColor: isDark ? '#D8D8D8' : '#444444',
+            headerTextColor: theme.text,
+            sidebarTextColor: theme.textSecondary,
+            cellColor: {
+              1: isDark ? 'rgba(204, 255, 0, 0.35)' : 'rgba(98, 0, 238, 0.35)',
+              2: isDark ? 'rgba(204, 255, 0, 0.7)' : 'rgba(98, 0, 238, 0.7)',
+              3: theme.primary,
+            },
+          }}
+          cellSize={12}
+          cellGap={2}
+          cellRadius={3}
+          pressable={false}
+          isHeaderVisible={false}
+          isSidebarVisible={false}
+          isCellTextVisible={false}
+          scrollable={false}
+          headerTextFontSize={10}
+          sideBarTextFontSize={10}
+          weekStartsOn={1}
+          cellText="count"
+          onCellPress={({ date, count }) => {
+            // optional: no-op for now
+          }}
+        />
       </View>
 
       {/* Per Habit Section */}
@@ -433,24 +443,6 @@ const styles = StyleSheet.create({
   commitBoardCard: {
     padding: 16,
     borderRadius: 20,
-  },
-  fullMatrixContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    width: '100%',
-  },
-  fullMatrixColumn: {
-    flexDirection: 'column',
-    justifyContent: 'space-between',
-    flex: 1,
-    alignItems: 'center',
-    gap: 4,
-  },
-  fullMatrixSquare: {
-    width: '85%',
-    aspectRatio: 1,
-    borderRadius: 3,
   },
   intensityRow: {
     flexDirection: 'row',

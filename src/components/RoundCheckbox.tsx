@@ -5,10 +5,12 @@ import { useTheme } from '../theme/ThemeContext';
 type Props = {
   isChecked: boolean;
   onPress: () => void;
+  variant?: 'check' | 'delete';
 };
 
-const RoundCheckbox = ({ isChecked, onPress }: Props) => {
+const RoundCheckbox = ({ isChecked, onPress, variant = 'check' }: Props) => {
   const { theme, isDark } = useTheme();
+  const isDeleteVariant = variant === 'delete';
 
   return (
     <Pressable
@@ -17,7 +19,10 @@ const RoundCheckbox = ({ isChecked, onPress }: Props) => {
       style={({ pressed }) => [
         styles.checkbox,
         isChecked
-          ? { backgroundColor: theme.primary, borderColor: theme.primary }
+          ? {
+              backgroundColor: isDeleteVariant ? '#FF3B30' : theme.primary,
+              borderColor: isDeleteVariant ? '#FF3B30' : theme.primary,
+            }
           : {
               backgroundColor: isDark ? '#222226' : '#E8E8E8',
               borderColor: isDark ? '#3A3A3C' : '#D1D1D6',
@@ -26,8 +31,16 @@ const RoundCheckbox = ({ isChecked, onPress }: Props) => {
       ]}
     >
       {isChecked && (
-        <Text style={[styles.checkmark, { color: isDark ? '#000000' : '#FFFFFF' }]}>
-          ✓
+        <Text
+          style={[
+            styles.checkmark,
+            {
+              color: isDark ? '#000000' : '#FFFFFF',
+              transform: [{ scale: isDeleteVariant ? 1.1 : 1 }],
+            },
+          ]}
+        >
+          {isDeleteVariant ? '−' : '✓'}
         </Text>
       )}
     </Pressable>

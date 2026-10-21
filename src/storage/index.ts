@@ -14,5 +14,12 @@ export const saveHabits = (habits: Habit[]) => {
 
 
 export const removeHabit = (id: string) => {
-  storage.remove(id);
+  const habits = getHabits().filter((habit) => habit.id !== id);
+  saveHabits(habits);
+};
+
+export const removeHabits = (ids: string[]) => {
+  if (!ids.length) return;
+  const habits = getHabits().filter((habit) => !ids.includes(habit.id));
+  saveHabits(habits);
 };

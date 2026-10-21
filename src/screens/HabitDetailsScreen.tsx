@@ -12,6 +12,13 @@ import { Habit } from '../types';
 import { useTheme } from '../theme/ThemeContext';
 import { monoFont } from '../theme/fonts';
 
+const formatDateKey = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 type HistoryDay = {
   dateStr: string;
   dayName: string;
@@ -178,80 +185,6 @@ const HabitDetailsScreen = ({ route }: any) => {
         </View>
       </View>
 
-      {/* Heatmap Matrix Section */}
-      <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
-        // ACTIVITY_HEATMAP (35 DAYS)
-      </Text>
-      <View
-        style={[
-          styles.heatmapCard,
-          {
-            backgroundColor: isDark ? '#161618' : '#FFFFFF',
-            borderColor: subtleBorderColor,
-            borderWidth: 1,
-          },
-        ]}
-      >
-        <View style={styles.heatmapGrid}>
-          {recentDays.map((day) => (
-            <TouchableOpacity
-              key={day.dateStr}
-              activeOpacity={0.7}
-              onPress={() => toggleDateCompletion(day.dateStr)}
-              style={[
-                styles.heatmapSquare,
-                day.isCompleted
-                  ? {
-                      backgroundColor: theme.primary,
-                      borderColor: theme.primary,
-                    }
-                  : {
-                      backgroundColor: isDark ? '#222226' : '#EAEAEA',
-                      borderColor: subtleBorderColor,
-                    },
-                day.isToday && {
-                  borderWidth: 1.5,
-                  borderColor: isDark ? '#FFFFFF' : '#000000',
-                },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.heatmapDayNum,
-                  {
-                    color: day.isCompleted
-                      ? isDark
-                        ? '#000000'
-                        : '#FFFFFF'
-                      : theme.textSecondary,
-                  },
-                ]}
-              >
-                {day.dayNum}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Legend */}
-        <View style={styles.legendRow}>
-          <View style={styles.legendItem}>
-            <View
-              style={[styles.legendSquare, { backgroundColor: isDark ? '#222226' : '#EAEAEA' }]}
-            />
-            <Text style={[styles.legendText, { color: theme.textSecondary }]}>
-              MISSED
-            </Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendSquare, { backgroundColor: theme.primary }]} />
-            <Text style={[styles.legendText, { color: theme.textSecondary }]}>
-              DONE
-            </Text>
-          </View>
-        </View>
-      </View>
-
       {/* Detailed History Log */}
       <Text style={[styles.sectionTitle, { color: theme.textSecondary, marginTop: 24 }]}>
         // HISTORY_LOG
@@ -363,48 +296,6 @@ const styles = StyleSheet.create({
     fontFamily: monoFont,
     letterSpacing: 1,
     marginBottom: 12,
-  },
-  heatmapCard: {
-    padding: 16,
-    borderRadius: 20,
-  },
-  heatmapGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    justifyContent: 'flex-start',
-  },
-  heatmapSquare: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-  },
-  heatmapDayNum: {
-    fontSize: 11,
-    fontFamily: monoFont,
-  },
-  legendRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 16,
-    marginTop: 16,
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  legendSquare: {
-    width: 12,
-    height: 12,
-    borderRadius: 3,
-  },
-  legendText: {
-    fontSize: 11,
-    fontFamily: monoFont,
   },
   logList: {
     gap: 10,
