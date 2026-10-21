@@ -122,6 +122,46 @@ const HomeScreen = ({ navigation }: any) => {
   const streak = calculateStreak(habits);
   const doneTodayCount = habits.filter((h) => h.history.includes(today)).length;
 
+  const matrixColumns = useMemo(() => {
+    const days: { dateStr: string; intensity: number }[] = [];
+    const todayObj = new Date();
+    const totalDays = 126; // 18 weeks x 7 days
+
+    for (let i = totalDays - 1; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(todayObj.getDate() - i);
+      const dateStr = d.toISOString().split('T')[0];
+
+      let count = 0;
+      habits.forEach((h) => {
+        if (h.history && h.history.includes(dateStr)) {
+          count++;
+        }
+      });
+
+      const total = habits.length || 1;
+      const ratio = count / total;
+      let intensity = 0;
+      if (count > 0) {
+        if (ratio >= 0.75) intensity = 3;
+        else if (ratio >= 0.4) intensity = 2;
+        else intensity = 1;
+      }
+
+      days.push({ dateStr, intensity });
+    }
+
+    const cols = [];
+    for (let c = 0; c < 18; c++) {
+      cols.push(days.slice(c * 7, (c + 1) * 7));
+    }
+    return cols;
+  }, [habits]);
+
+  const currentMonthYear = useMemo(() => {
+    return new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase();
+  }, []);
+
   const renderHeader = () => (
     <View style={styles.headerSection}>
       <View style={styles.statsRow}>
@@ -155,6 +195,59 @@ const HomeScreen = ({ navigation }: any) => {
           <Text style={[styles.doneValue, { color: theme.text }]}>
             {doneTodayCount}/{habits.length}
           </Text>
+        </View>
+      </View>
+
+      <View
+        style={[
+          styles.heatmapCard,
+          {
+            backgroundColor: isDark ? '#121212' : '#FFFFFF',
+            borderColor: subtleBorderColor,
+            borderWidth: 1,
+          },
+        ]}
+      >
+        <View style={styles.heatmapHeaderRow}>
+          <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>// COMMIT_BOARD</Text>
+          <Text style={[styles.heatmapMonth, { color: theme.textSecondary }]}>{currentMonthYear}</Text>
+        </View>
+
+        <View style={styles.fullMatrixContainer}>
+          {matrixColumns.map((col, colIdx) => (
+            <View key={`col-${colIdx}`} style={styles.fullMatrixColumn}>
+              {col.map((dayData) => {
+                let squareBg = isDark ? '#222226' : '#EAEAEA';
+                if (dayData.intensity === 1) {
+                  squareBg = isDark ? 'rgba(204, 255, 0, 0.35)' : 'rgba(98, 0, 238, 0.35)';
+                } else if (dayData.intensity === 2) {
+                  squareBg = isDark ? 'rgba(204, 255, 0, 0.7)' : 'rgba(98, 0, 238, 0.7)';
+                } else if (dayData.intensity === 3) {
+                  squareBg = theme.primary;
+                }
+
+                return (
+                  <View
+                    key={dayData.dateStr}
+                    style={[
+                      styles.fullMatrixSquare,
+                      { backgroundColor: squareBg },
+                    ]}
+                  />
+                );
+              })}
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.intensityRow}>
+          <Text style={[styles.intensityLabel, { color: theme.textSecondary }]}>INTENSITY:</Text>
+          <View style={[styles.intensitySquare, { backgroundColor: isDark ? '#222226' : '#EAEAEA' }]} />
+          <View style={[styles.intensitySquare, { backgroundColor: isDark ? 'rgba(204, 255, 0, 0.35)' : 'rgba(98, 0, 238, 0.35)' }]} />
+          <View style={[styles.intensitySquare, { backgroundColor: isDark ? 'rgba(204, 255, 0, 0.7)' : 'rgba(98, 0, 238, 0.7)' }]} />
+          <View style={[styles.intensitySquare, { backgroundColor: theme.primary }]} />
+          <Text style={[styles.intensityText, { color: theme.textSecondary }]}>NONE</Text>
+          <Text style={[styles.intensityText, { color: theme.primary }]}>FULL</Text>
         </View>
       </View>
 
@@ -263,7 +356,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   listContainer: {
     padding: 16,
-    paddingBottom: 110, // Отступ снизу с учетом плавающей нижней навигации
+    paddingBottom: 110,
   },
   headerRightContainer: {
     flexDirection: 'row',
@@ -315,11 +408,65 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontFamily: monoFont,
   },
+  heatmapCard: {
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 20,
+  },
+  heatmapHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  heatmapMonth: {
+    fontSize: 12,
+    fontFamily: monoFont,
+  },
   sectionTitle: {
     fontSize: 13,
     fontFamily: monoFont,
     letterSpacing: 1,
     marginBottom: 12,
+  },
+  fullMatrixContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+  },
+  fullMatrixColumn: {
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    flex: 1,
+    alignItems: 'center',
+    gap: 4,
+  },
+  fullMatrixSquare: {
+    width: '85%',
+    aspectRatio: 1,
+    borderRadius: 3,
+  },
+  intensityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 14,
+  },
+  intensityLabel: {
+    fontSize: 11,
+    fontFamily: monoFont,
+    letterSpacing: 0.5,
+  },
+  intensitySquare: {
+    width: 10,
+    height: 10,
+    borderRadius: 2,
+  },
+  intensityText: {
+    fontSize: 11,
+    fontFamily: monoFont,
+    marginLeft: 2,
   },
   card: {
     flexDirection: 'row',
