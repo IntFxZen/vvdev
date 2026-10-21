@@ -11,13 +11,6 @@ import { Habit } from '../types';
 import { useTheme } from '../theme/ThemeContext';
 import { monoFont } from '../theme/fonts';
 
-const formatDateKey = (date: Date): string => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
-
 const calculateStreak = (habits: Habit[]): number => {
   if (habits.length === 0) return 0;
   let maxStreak = 0;
@@ -98,95 +91,8 @@ const ProgressScreen = () => {
     return Math.round((completedCount / totalPossible) * 100) || 0;
   }, [habits]);
 
-  const matrixColumns = useMemo(() => {
-    const days: { dateStr: string; intensity: number }[] = [];
-    const todayObj = new Date();
-    const totalDays = 126; // 18 weeks x 7 days
-
-    for (let i = totalDays - 1; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(todayObj.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0];
-
-      let count = 0;
-      habits.forEach((h) => {
-        if (h.history && h.history.includes(dateStr)) {
-          count++;
-        }
-      });
-
-      const total = habits.length || 1;
-      const ratio = count / total;
-      let intensity = 0;
-      if (count > 0) {
-        if (ratio >= 0.75) intensity = 3;
-        else if (ratio >= 0.4) intensity = 2;
-        else intensity = 1;
-      }
-
-      days.push({ dateStr, intensity });
-    }
-
-    const cols = [];
-    for (let c = 0; c < 18; c++) {
-      cols.push(days.slice(c * 7, (c + 1) * 7));
-    }
-    return cols;
-  }, [habits]);
-
-  const currentMonthYear = useMemo(() => {
-    return new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase();
-  }, []);
-
   const currentYear = useMemo(() => {
     return new Date().getFullYear().toString();
-  }, []);
-
-  const last7Days = useMemo(() => {
-    const days: string[] = [];
-    const today = new Date();
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(today.getDate() - i);
-      days.push(d.toISOString().split('T')[0]);
-    }
-    return days;
-  }, []);
-
-  const activityByDate = useMemo(() => {
-    const map: Record<string, number> = {};
-
-    habits.forEach((habit) => {
-      habit.history?.forEach((dateStr) => {
-        const nextValue = (map[dateStr] || 0) + 1;
-        map[dateStr] = Math.min(nextValue, 3);
-      });
-    });
-
-    return map;
-  }, [habits]);
-
-  const heatmapData = useMemo(() => {
-    const today = new Date();
-    const data: Record<string, number> = {};
-    const startDate = new Date(today);
-    startDate.setDate(today.getDate() - 363);
-
-    for (let i = 0; i < 364; i++) {
-      const current = new Date(startDate);
-      current.setDate(startDate.getDate() + i);
-      const key = formatDateKey(current);
-      data[key] = Math.min(activityByDate[key] || 0, 3);
-    }
-
-    return data;
-  }, [activityByDate]);
-
-  const heatmapStart = useMemo(() => {
-    const start = new Date();
-    start.setDate(start.getDate() - 363);
-    start.setHours(0, 0, 0, 0);
-    return start;
   }, []);
 
   return (
@@ -265,60 +171,6 @@ const ProgressScreen = () => {
         </View>
       </View>
 
-      {/* Commit Board Section */}
-      <View style={styles.sectionHeaderRow}>
-        <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
-          // COMMIT_BOARD
-        </Text>
-        <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
-          {currentMonthYear}
-        </Text>
-      </View>
-
-      <View
-        style={[
-          styles.commitBoardCard,
-          {
-            backgroundColor: isDark ? '#121212' : '#FFFFFF',
-            borderColor: subtleBorderColor,
-            borderWidth: 1,
-          },
-        ]}
-      >
-        <WeeklyHeatMap
-          data={heatmapData}
-          startDate={heatmapStart}
-          endDate={new Date()}
-          theme={{
-            scheme: isDark ? 'dark' : 'light',
-            cellDefaultColor: isDark ? '#1F1F22' : '#EAEAEA',
-            cellTextColor: isDark ? '#D8D8D8' : '#444444',
-            headerTextColor: theme.text,
-            sidebarTextColor: theme.textSecondary,
-            cellColor: {
-              1: isDark ? 'rgba(204, 255, 0, 0.35)' : 'rgba(98, 0, 238, 0.35)',
-              2: isDark ? 'rgba(204, 255, 0, 0.7)' : 'rgba(98, 0, 238, 0.7)',
-              3: theme.primary,
-            },
-          }}
-          cellSize={12}
-          cellGap={2}
-          cellRadius={3}
-          pressable={false}
-          isHeaderVisible={false}
-          isSidebarVisible={false}
-          isCellTextVisible={false}
-          scrollable={false}
-          headerTextFontSize={10}
-          sideBarTextFontSize={10}
-          weekStartsOn={1}
-          cellText="count"
-          onCellPress={({ date, count }) => {
-            // optional: no-op for now
-          }}
-        />
-      </View>
-
       {/* Per Habit Section */}
       <Text style={[styles.sectionTitle, { color: theme.textSecondary, marginTop: 24 }]}>
         // PER_HABIT
@@ -344,26 +196,9 @@ const ProgressScreen = () => {
                 {formattedTitle}
               </Text>
 
-              <View style={styles.miniHeatmapRow}>
-                {last7Days.map((dateStr) => {
-                  const isDone = item.history && item.history.includes(dateStr);
-                  return (
-                    <View
-                      key={dateStr}
-                      style={[
-                        styles.miniSquare,
-                        {
-                          backgroundColor: isDone
-                            ? theme.primary
-                            : isDark
-                            ? '#222226'
-                            : '#EAEAEA',
-                        },
-                      ]}
-                    />
-                  );
-                })}
-              </View>
+              <Text style={[styles.habitRowMeta, { color: theme.textSecondary }]}>
+                {item.history?.length || 0} completions
+              </Text>
             </View>
           );
         })}
@@ -425,45 +260,10 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontFamily: monoFont,
   },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
   sectionTitle: {
     fontSize: 13,
     fontFamily: monoFont,
     letterSpacing: 1,
-  },
-  sectionSubtitle: {
-    fontSize: 12,
-    fontFamily: monoFont,
-  },
-  commitBoardCard: {
-    padding: 16,
-    borderRadius: 20,
-  },
-  intensityRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 14,
-  },
-  intensityLabel: {
-    fontSize: 11,
-    fontFamily: monoFont,
-    letterSpacing: 0.5,
-  },
-  intensitySquare: {
-    width: 10,
-    height: 10,
-    borderRadius: 2,
-  },
-  intensityText: {
-    fontSize: 11,
-    fontFamily: monoFont,
-    marginLeft: 2,
   },
   perHabitList: {
     gap: 12,
@@ -483,14 +283,9 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     flex: 1,
   },
-  miniHeatmapRow: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-  miniSquare: {
-    width: 12,
-    height: 12,
-    borderRadius: 3,
+  habitRowMeta: {
+    fontSize: 12,
+    fontFamily: monoFont,
   },
 });
 

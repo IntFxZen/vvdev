@@ -1,7 +1,6 @@
-import React, { useState, useCallback, useLayoutEffect, useMemo } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Dimensions, Vibration } from 'react-native';
+import React, { useState, useCallback, useLayoutEffect } from 'react';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Vibration } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { Heatmap } from '@dt-workspace/react-native-heatmap';
 import { Habit } from '../types';
 import { getHabits, saveHabits, removeHabits } from '../storage';
 import RoundCheckbox from '../components/RoundCheckbox';
@@ -13,14 +12,6 @@ const formatLocalDateKey = (date: Date): string => {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
-};
-
-const getSundayOfCurrentWeek = (date: Date): Date => {
-  const next = new Date(date);
-  next.setHours(0, 0, 0, 0);
-  const diff = next.getDay();
-  next.setDate(next.getDate() - diff);
-  return next;
 };
 
 const calculateStreak = (habits: Habit[]): number => {
@@ -69,18 +60,6 @@ const HomeScreen = ({ navigation }: any) => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const today = new Date();
   const todayDate = formatLocalDateKey(today);
-  const heatmapWidth = Dimensions.get('window').width - 64;
-  const heatmapWeeks = 18;
-  const heatmapCellSpacing = 3;
-  const heatmapCellSize = Math.max(8, Math.floor((heatmapWidth - (heatmapWeeks - 1) * heatmapCellSpacing) / heatmapWeeks));
-
-  const sundayOfCurrentWeek = getSundayOfCurrentWeek(today);
-
-  const heatmapStartDate = new Date(sundayOfCurrentWeek);
-  heatmapStartDate.setDate(heatmapStartDate.getDate() - (heatmapWeeks - 1) * 7);
-
-  const heatmapEndDate = new Date(today);
-  heatmapEndDate.setHours(0, 0, 0, 0);
 
   const formattedDate = new Date().toLocaleDateString('en-US', {
     month: 'short',
@@ -178,41 +157,6 @@ const HomeScreen = ({ navigation }: any) => {
   const streak = calculateStreak(habits);
   const doneTodayCount = habits.filter((h) => h.history.includes(todayDate)).length;
 
-  const heatmapData = useMemo(() => {
-    const days: { date: string; value: number }[] = [];
-    const current = new Date(heatmapStartDate);
-
-    while (current <= heatmapEndDate) {
-      const dateStr = formatLocalDateKey(current);
-      const doneCount = habits.filter((habit) => habit.history?.includes(dateStr)).length;
-      let value = 0;
-
-      if (doneCount >= 4) value = 4;
-      else if (doneCount === 3) value = 3;
-      else if (doneCount === 2) value = 2;
-      else if (doneCount === 1) value = 1;
-
-      days.push({ date: dateStr, value });
-      current.setDate(current.getDate() + 1);
-    }
-
-    return days;
-  }, [habits, heatmapStartDate, heatmapEndDate]);
-
-  const heatmapColorScheme = isDark
-    ? {
-        name: 'habit-dark',
-        colors: ['#1E2328', '#2B3F12', '#4B6E00', '#8ECF00', '#CCFF00'],
-        emptyColor: '#222126',
-      }
-    : {
-        name: 'habit-light',
-        colors: ['#F4EBFF', '#E8D5FF', '#D59DFF', '#8B50FF', '#6200EE'],
-        emptyColor: '#EFEAF7',
-      };
-
-  const currentMonthYear = new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase();
-
   const renderHeader = () => (
     <View style={styles.headerSection}>
       <View style={styles.statsRow}>
@@ -247,54 +191,6 @@ const HomeScreen = ({ navigation }: any) => {
             {doneTodayCount}/{habits.length}
           </Text>
         </View>
-      </View>
-
-      <View
-        style={[
-          styles.heatmapCard,
-          {
-            backgroundColor: isDark ? '#161618' : '#E5E5EA',
-            borderColor: subtleBorderColor,
-            borderWidth: 1,
-          },
-        ]}
-      >
-        <View style={styles.heatmapHeaderRow}>
-          <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>// COMMIT_BOARD</Text>
-          <Text style={[styles.heatmapMonth, { color: theme.textSecondary }]}>{currentMonthYear}</Text>
-        </View>
-
-        <Heatmap
-          data={heatmapData}
-          startDate={heatmapStartDate}
-          endDate={heatmapEndDate}
-          width={heatmapWidth}
-          height={heatmapCellSize * 7 + (7 - 1) * heatmapCellSpacing + 8}
-          cellSize={heatmapCellSize}
-          cellSpacing={heatmapCellSpacing}
-          layout="calendar"
-          cellShape="rounded"
-          animated={false}
-          showMonthLabels={false}
-          showWeekdayLabels={false}
-          colorScheme={heatmapColorScheme}
-          theme={{
-            colors: {
-              background: 'transparent',
-              text: theme.text,
-              border: 'transparent',
-              tooltip: '#111111',
-              tooltipText: '#FFFFFF',
-            },
-            spacing: { cell: heatmapCellSpacing, margin: 0, padding: 0 },
-            typography: {
-              fontSize: 10,
-              fontWeight: '500',
-              fontFamily: monoFont,
-            },
-          }}
-          style={{ width: '100%', alignSelf: 'stretch' }}
-        />
       </View>
 
       <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>// HABITS</Text>
@@ -506,21 +402,6 @@ const styles = StyleSheet.create({
   },
   doneValue: {
     fontSize: 24,
-    fontFamily: monoFont,
-  },
-  heatmapCard: {
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 20,
-  },
-  heatmapHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  heatmapMonth: {
-    fontSize: 12,
     fontFamily: monoFont,
   },
   sectionTitle: {
