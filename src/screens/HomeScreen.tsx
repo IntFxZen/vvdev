@@ -5,6 +5,7 @@ import { Habit } from '../types';
 import { getHabits, saveHabits } from '../storage';
 import RoundCheckbox from '../components/RoundCheckbox';
 import { useTheme } from '../theme/ThemeContext';
+import { monoFont } from '../theme/fonts';
 
 const calculateStreak = (habits: Habit[]): number => {
   if (habits.length === 0) return 0;
@@ -64,8 +65,8 @@ const HomeScreen = ({ navigation }: any) => {
       headerTitleAlign: 'left',
       headerTitleStyle: {
         fontSize: 20,
-        fontWeight: '600',
         color: theme.text,
+        fontFamily: monoFont,
       },
       headerStyle: { backgroundColor: theme.background },
       headerTintColor: theme.text,
@@ -266,7 +267,7 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     fontSize: 13,
-    fontWeight: 'bold',
+    fontFamily: monoFont,
     letterSpacing: 0.5,
   },
   headerSection: {
@@ -288,22 +289,22 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 11,
-    fontWeight: '600',
+    fontFamily: monoFont,
     letterSpacing: 1,
     marginBottom: 8,
     textTransform: 'uppercase',
   },
   streakValue: {
-    fontSize: 22,
-    fontWeight: '800',
+    fontSize: 24,
+    fontFamily: monoFont,
   },
   doneValue: {
-    fontSize: 22,
-    fontWeight: '800',
+    fontSize: 24,
+    fontFamily: monoFont,
   },
   sectionTitle: {
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: monoFont,
     letterSpacing: 1,
     marginBottom: 12,
   },
@@ -324,11 +325,12 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: monoFont,
     letterSpacing: 0.5,
   },
   cardSubtitle: {
     fontSize: 12,
+    fontFamily: monoFont,
     marginTop: 2,
   },
   statusBadge: {
@@ -339,10 +341,15 @@ const styles = StyleSheet.create({
   },
   statusBadgeText: {
     fontSize: 12,
-    fontWeight: '700',
+    fontFamily: monoFont,
     letterSpacing: 0.5,
   },
-  emptyText: { textAlign: 'center', marginTop: 30, fontSize: 16 },
+  emptyText: {
+    textAlign: 'center',
+    marginTop: 30,
+    fontSize: 16,
+    fontFamily: monoFont,
+  },
 });
 
 export default HomeScreen;
