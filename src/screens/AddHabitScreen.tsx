@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import RNDateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { getHabits, saveHabits } from '../storage';
 import { useTheme } from '../theme/ThemeContext';
 import { monoFont } from '../theme/fonts';
@@ -24,15 +25,45 @@ const AddHabitScreen = ({ navigation }: any) => {
   const { theme, isDark } = useTheme();
   const [title, setTitle] = useState('');
   const [emoji, setEmoji] = useState('🎯');
-  const [time, setTime] = useState('06:00 AM');
   const [duration, setDuration] = useState('30 min');
+
+  const [selectedTime, setSelectedTime] = useState(() => {
+    const d = new Date();
+    d.setHours(6, 0, 0, 0);
+    return d;
+  });
+  const [showIosTimePicker, setShowIosTimePicker] = useState(false);
 
   const [isTitleFocused, setIsTitleFocused] = useState(false);
   const [isEmojiFocused, setIsEmojiFocused] = useState(false);
-  const [isTimeFocused, setIsTimeFocused] = useState(false);
 
   const subtleBorderColor = isDark ? 'rgba(255, 255, 255, 0.08)' : '#E5E5EA';
   const focusedBorderColor = isDark ? 'rgba(204, 255, 0, 0.7)' : theme.primary;
+
+  const formattedTimeString = useMemo(() => {
+    return selectedTime.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+  }, [selectedTime]);
+
+  const openNativeTimePicker = () => {
+    if (Platform.OS === 'android') {
+      DateTimePickerAndroid.open({
+        value: selectedTime,
+        mode: 'time',
+        is24Hour: false,
+        onChange: (event, date) => {
+          if (event.type === 'set' && date) {
+            setSelectedTime(date);
+          }
+        },
+      });
+    } else {
+      setShowIosTimePicker((prev) => !prev);
+    }
+  };
 
   const handleEmojiChange = (text: string) => {
     const chars = Array.from(text);
@@ -65,7 +96,7 @@ const AddHabitScreen = ({ navigation }: any) => {
       title: title.trim(),
       emoji: emoji.trim() || '🎯',
       color: '#E3F2FD',
-      time: time.trim() || '06:00 AM',
+      time: formattedTimeString,
       duration: duration.trim() || '30 min',
       history: [],
     };
@@ -137,27 +168,37 @@ const AddHabitScreen = ({ navigation }: any) => {
         <Text style={[styles.label, { color: theme.textSecondary, marginTop: 20 }]}>
           REMINDER_TIME
         </Text>
-        <View
+        <TouchableOpacity
           style={[
             styles.timeInputContainer,
             {
-              borderColor: isTimeFocused ? focusedBorderColor : subtleBorderColor,
-              borderWidth: isTimeFocused ? 1.5 : 1,
+              borderColor: subtleBorderColor,
               backgroundColor: isDark ? '#121212' : '#FFFFFF',
+              borderWidth: 1,
             },
           ]}
+          onPress={openNativeTimePicker}
+          activeOpacity={0.7}
         >
-          <TextInput
-            style={[styles.timeInput, { color: theme.text }]}
-            placeholder="06:00 AM"
-            placeholderTextColor={isDark ? '#555555' : '#888888'}
-            value={time}
-            onChangeText={setTime}
-            onFocus={() => setIsTimeFocused(true)}
-            onBlur={() => setIsTimeFocused(false)}
-          />
+          <Text style={[styles.timeText, { color: theme.text }]}>
+            {formattedTimeString}
+          </Text>
           <Text style={[styles.timeIcon, { color: theme.textSecondary }]}>⏱</Text>
-        </View>
+        </TouchableOpacity>
+
+        {Platform.OS === 'ios' && showIosTimePicker && (
+          <View style={styles.iosPickerContainer}>
+            <RNDateTimePicker
+              value={selectedTime}
+              mode="time"
+              display="spinner"
+              onChange={(event, date) => {
+                setShowIosTimePicker(false);
+                if (date) setSelectedTime(date);
+              }}
+            />
+          </View>
+        )}
 
         <Text style={[styles.label, { color: theme.textSecondary, marginTop: 20 }]}>
           TARGET_DURATION
@@ -270,20 +311,22 @@ const styles = StyleSheet.create({
   timeInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
+    justifyContent: 'space-between',
     borderRadius: 20,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
   },
-  timeInput: {
-    flex: 1,
+  timeText: {
     fontSize: 15,
     fontFamily: monoFont,
-    padding: 0,
   },
   timeIcon: {
     fontSize: 16,
     marginLeft: 8,
+  },
+  iosPickerContainer: {
+    marginTop: 8,
+    alignItems: 'center',
   },
   optionsRow: {
     flexDirection: 'row',
