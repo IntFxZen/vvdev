@@ -59,6 +59,8 @@ const HomeScreen = ({ navigation }: any) => {
     });
   }, []);
 
+  const subtleBorderColor = isDark ? 'rgba(255, 255, 255, 0.08)' : '#E5E5EA';
+
   useLayoutEffect(() => {
     navigation.setOptions({
       headerTitle: formattedDate,
@@ -79,7 +81,11 @@ const HomeScreen = ({ navigation }: any) => {
           <TouchableOpacity
             style={[
               styles.addButton,
-              { backgroundColor: isDark ? '#1C1C1E' : '#E5E5EA' },
+              {
+                backgroundColor: isDark ? '#1C1C1E' : '#E5E5EA',
+                borderWidth: 1,
+                borderColor: subtleBorderColor,
+              },
             ]}
             onPress={() => navigation.navigate('AddHabit')}
             activeOpacity={0.7}
@@ -89,7 +95,7 @@ const HomeScreen = ({ navigation }: any) => {
         </View>
       ),
     });
-  }, [navigation, theme, isDark, toggleTheme, formattedDate]);
+  }, [navigation, theme, isDark, toggleTheme, formattedDate, subtleBorderColor]);
 
   useFocusEffect(
     useCallback(() => {
@@ -138,7 +144,11 @@ const HomeScreen = ({ navigation }: any) => {
         <View
           style={[
             styles.statCard,
-            { backgroundColor: isDark ? '#1C1C1E' : '#E5E5EA' },
+            {
+              backgroundColor: isDark ? '#1C1C1E' : '#E5E5EA',
+              borderWidth: 1,
+              borderColor: subtleBorderColor,
+            },
           ]}
         >
           <Text style={[styles.statLabel, { color: theme.textSecondary }]}>DONE TODAY</Text>
@@ -162,7 +172,6 @@ const HomeScreen = ({ navigation }: any) => {
         : '8:00 AM · 30 min';
 
     const completedBorderColor = isDark ? 'rgba(204, 255, 0, 0.35)' : 'rgba(98, 0, 238, 0.35)';
-    const pendingBorderColor = isDark ? 'rgba(255, 255, 255, 0.08)' : '#E5E5EA';
 
     return (
       <TouchableOpacity
@@ -171,7 +180,7 @@ const HomeScreen = ({ navigation }: any) => {
           styles.card,
           {
             borderWidth: 1,
-            borderColor: isCompletedToday ? completedBorderColor : pendingBorderColor,
+            borderColor: isCompletedToday ? completedBorderColor : subtleBorderColor,
             backgroundColor: isCompletedToday
               ? (isDark ? '#0D140A' : '#F4FBF0')
               : (isDark ? '#161618' : '#FFFFFF'),
@@ -243,6 +252,7 @@ const HomeScreen = ({ navigation }: any) => {
             Пока нет привычек. Добавьте первую!
           </Text>
         }
+        showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContainer}
       />
     </View>
@@ -251,7 +261,10 @@ const HomeScreen = ({ navigation }: any) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  listContainer: { padding: 16 },
+  listContainer: {
+    padding: 16,
+    paddingBottom: 110, // Отступ снизу с учетом плавающей нижней навигации
+  },
   headerRightContainer: {
     flexDirection: 'row',
     alignItems: 'center',
