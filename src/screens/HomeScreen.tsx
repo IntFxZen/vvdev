@@ -1,5 +1,13 @@
-import React, { useState, useCallback, useLayoutEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Vibration } from 'react-native';
+import React, { useState, useCallback, useLayoutEffect, useMemo } from 'react';
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  StyleSheet,
+  Vibration,
+  TextInput,
+} from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Habit } from '../types';
 import { getHabits, saveHabits, removeHabits } from '../storage';
@@ -58,6 +66,8 @@ const HomeScreen = ({ navigation }: any) => {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [completionFilter, setCompletionFilter] = useState<'all' | 'done' | 'pending'>('all');
   const today = new Date();
   const todayDate = formatLocalDateKey(today);
 
@@ -156,6 +166,21 @@ const HomeScreen = ({ navigation }: any) => {
 
   const streak = calculateStreak(habits);
   const doneTodayCount = habits.filter((h) => h.history.includes(todayDate)).length;
+
+  const filteredHabits = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+
+    return habits.filter((habit) => {
+      const isDoneToday = habit.history.includes(todayDate);
+      if (completionFilter === 'done' && !isDoneToday) return false;
+      if (completionFilter === 'pending' && isDoneToday) return false;
+
+      if (!normalizedQuery) return true;
+      const title = (habit.title || '').toLowerCase();
+      const emoji = (habit.emoji || '').toLowerCase();
+      return title.includes(normalizedQuery) || `${emoji} ${title}`.includes(normalizedQuery);
+    });
+  }, [habits, completionFilter, searchQuery, todayDate]);
 
   const renderHeader = () => (
     <View style={styles.headerSection}>
@@ -331,14 +356,79 @@ const HomeScreen = ({ navigation }: any) => {
         </View>
       )}
 
+      <View
+        style={[
+          styles.searchRow,
+          {
+            backgroundColor: isDark ? '#161618' : '#FFFFFF',
+            borderColor: subtleBorderColor,
+          },
+        ]}
+      >
+        <TextInput
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholder="Search habits"
+          placeholderTextColor={theme.textSecondary}
+          style={[styles.searchInput, { color: theme.text }]}
+          multiline={false}
+          numberOfLines={1}
+          returnKeyType="search"
+          blurOnSubmit={false}
+        />
+      </View>
+
+      <View style={styles.filterRowStandalone}>
+        <TouchableOpacity
+          style={[
+            styles.filterChip,
+            completionFilter === 'all' && { backgroundColor: isDark ? '#1C1C1E' : '#E5E5EA' },
+          ]}
+          onPress={() => setCompletionFilter('all')}
+        >
+          <Text style={[styles.filterChipText, { color: theme.text }]}>ALL</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.filterChip,
+            completionFilter === 'done' && { backgroundColor: isDark ? 'rgba(204, 255, 0, 0.16)' : 'rgba(98, 0, 238, 0.12)' },
+          ]}
+          onPress={() => setCompletionFilter('done')}
+        >
+          <Text style={[styles.filterChipText, { color: completionFilter === 'done' ? theme.primary : theme.text }]}>DONE</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.filterChip,
+            completionFilter === 'pending' && {
+              backgroundColor: isDark
+                ? 'rgba(255, 149, 0, 0.12)'
+                : 'rgba(255, 149, 0, 0.15)',
+            },
+          ]}
+          onPress={() => setCompletionFilter('pending')}
+        >
+          <Text
+            style={[
+              styles.filterChipText,
+              { color: completionFilter === 'pending' ? '#FF9500' : theme.text },
+            ]}
+          >
+            PENDING
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       <FlatList
-        data={habits}
+        data={filteredHabits}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         ListHeaderComponent={renderHeader}
         ListEmptyComponent={
           <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
-            Пока нет привычек. Добавьте первую!
+            {habits.length === 0
+              ? 'Пока нет привычек. Добавьте первую!'
+              : 'Ничего не найдено по текущему фильтру.'}
           </Text>
         }
         showsVerticalScrollIndicator={false}
@@ -409,6 +499,36 @@ const styles = StyleSheet.create({
     fontFamily: monoFont,
     letterSpacing: 1,
     marginBottom: 12,
+  },
+  searchRow: {
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    marginHorizontal: 16,
+    marginTop: 12,
+  },
+  searchInput: {
+    fontSize: 14,
+    fontFamily: monoFont,
+    paddingVertical: 6,
+    paddingHorizontal: 2,
+  },
+  filterRowStandalone: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 10,
+    marginBottom: 10,
+    marginHorizontal: 16,
+  },
+  filterChip: {
+    borderRadius: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
+  filterChipText: {
+    fontSize: 13,
+    fontFamily: monoFont,
+    letterSpacing: 0.5,
   },
   card: {
     flexDirection: 'row',

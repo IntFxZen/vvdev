@@ -16,6 +16,10 @@ import { monoFont } from '../theme/fonts';
 
 const DURATION_OPTIONS = ['15 MIN', '30 MIN', '60 MIN'];
 
+const normalizeHabitTitle = (value: string): string => {
+  return value.trim().replace(/\s+/g, ' ').toLowerCase();
+};
+
 const AddHabitScreen = ({ navigation }: any) => {
   const { theme, isDark } = useTheme();
   const [title, setTitle] = useState('');
@@ -46,6 +50,15 @@ const AddHabitScreen = ({ navigation }: any) => {
     }
 
     const currentHabits = getHabits();
+    const normalizedInputTitle = normalizeHabitTitle(title);
+    const hasDuplicate = currentHabits.some(
+      (habit) => normalizeHabitTitle(habit.title) === normalizedInputTitle
+    );
+
+    if (hasDuplicate) {
+      Alert.alert('Duplicate Habit', 'A habit with this name already exists.');
+      return;
+    }
 
     const newHabit = {
       id: Date.now().toString(),
@@ -57,7 +70,15 @@ const AddHabitScreen = ({ navigation }: any) => {
       history: [],
     };
 
-    saveHabits([...currentHabits, newHabit]);
+    const isSaved = saveHabits([...currentHabits, newHabit]);
+    if (!isSaved) {
+      Alert.alert(
+        'Save Failed',
+        'We could not save your habit right now. Please try again.'
+      );
+      return;
+    }
+
     navigation.goBack();
   };
 
