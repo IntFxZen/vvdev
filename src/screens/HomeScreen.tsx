@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useLayoutEffect, useMemo } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { Heatmap } from '@dt-workspace/react-native-heatmap';
 import { Habit } from '../types';
 import { getHabits, saveHabits } from '../storage';
 import RoundCheckbox from '../components/RoundCheckbox';
@@ -50,6 +51,13 @@ const HomeScreen = ({ navigation }: any) => {
   const { theme, isDark, toggleTheme } = useTheme();
   const [habits, setHabits] = useState<Habit[]>([]);
   const today = new Date().toISOString().split('T')[0];
+  const heatmapWidth = Dimensions.get('window').width - 64;
+  const heatmapWeeks = 18;
+  const heatmapCellSpacing = 3;
+  const heatmapCellSize = useMemo(() => {
+    const innerWidth = heatmapWidth - (heatmapWeeks - 1) * heatmapCellSpacing;
+    return Math.max(8, Math.floor(innerWidth / heatmapWeeks));
+  }, [heatmapWidth]);
 
   const formattedDate = useMemo(() => {
     return new Date().toLocaleDateString('en-US', {
@@ -122,41 +130,45 @@ const HomeScreen = ({ navigation }: any) => {
   const streak = calculateStreak(habits);
   const doneTodayCount = habits.filter((h) => h.history.includes(today)).length;
 
-  const matrixColumns = useMemo(() => {
-    const days: { dateStr: string; intensity: number }[] = [];
-    const todayObj = new Date();
-    const totalDays = 126; // 18 weeks x 7 days
+  const heatmapData = useMemo(() => {
+    const days: { date: string; value: number }[] = [];
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 125);
 
-    for (let i = totalDays - 1; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(todayObj.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0];
+    for (let i = 0; i < 126; i++) {
+      const current = new Date(startDate);
+      current.setDate(startDate.getDate() + i);
+      const dateStr = current.toISOString().split('T')[0];
 
-      let count = 0;
-      habits.forEach((h) => {
-        if (h.history && h.history.includes(dateStr)) {
-          count++;
-        }
-      });
+      const doneCount = habits.filter((habit) => habit.history?.includes(dateStr)).length;
+      let value = 0;
 
-      const total = habits.length || 1;
-      const ratio = count / total;
-      let intensity = 0;
-      if (count > 0) {
-        if (ratio >= 0.75) intensity = 3;
-        else if (ratio >= 0.4) intensity = 2;
-        else intensity = 1;
-      }
+      if (doneCount >= 4) value = 4;
+      else if (doneCount === 3) value = 3;
+      else if (doneCount === 2) value = 2;
+      else if (doneCount === 1) value = 1;
 
-      days.push({ dateStr, intensity });
+      days.push({ date: dateStr, value });
     }
 
-    const cols = [];
-    for (let c = 0; c < 18; c++) {
-      cols.push(days.slice(c * 7, (c + 1) * 7));
-    }
-    return cols;
+    return days;
   }, [habits]);
+
+  const heatmapColorScheme = useMemo(
+    () =>
+      isDark
+        ? {
+            name: 'habit-dark',
+            colors: ['#222126', '#2F3A0A', '#5B7F00', '#9BDD00', '#CCFF00'],
+            emptyColor: '#222126',
+          }
+        : {
+            name: 'habit-light',
+            colors: ['#F7F2FB', '#F2D7FF', '#D59DFF', '#8B50FF', '#6200EE'],
+            emptyColor: '#EFEAF7',
+          },
+    [isDark]
+  );
 
   const currentMonthYear = useMemo(() => {
     return new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase();
@@ -213,42 +225,37 @@ const HomeScreen = ({ navigation }: any) => {
           <Text style={[styles.heatmapMonth, { color: theme.textSecondary }]}>{currentMonthYear}</Text>
         </View>
 
-        <View style={styles.fullMatrixContainer}>
-          {matrixColumns.map((col, colIdx) => (
-            <View key={`col-${colIdx}`} style={styles.fullMatrixColumn}>
-              {col.map((dayData) => {
-                let squareBg = isDark ? '#222226' : '#EAEAEA';
-                if (dayData.intensity === 1) {
-                  squareBg = isDark ? 'rgba(204, 255, 0, 0.35)' : 'rgba(98, 0, 238, 0.35)';
-                } else if (dayData.intensity === 2) {
-                  squareBg = isDark ? 'rgba(204, 255, 0, 0.7)' : 'rgba(98, 0, 238, 0.7)';
-                } else if (dayData.intensity === 3) {
-                  squareBg = theme.primary;
-                }
-
-                return (
-                  <View
-                    key={dayData.dateStr}
-                    style={[
-                      styles.fullMatrixSquare,
-                      { backgroundColor: squareBg },
-                    ]}
-                  />
-                );
-              })}
-            </View>
-          ))}
-        </View>
-
-        <View style={styles.intensityRow}>
-          <Text style={[styles.intensityLabel, { color: theme.textSecondary }]}>INTENSITY:</Text>
-          <View style={[styles.intensitySquare, { backgroundColor: isDark ? '#222226' : '#EAEAEA' }]} />
-          <View style={[styles.intensitySquare, { backgroundColor: isDark ? 'rgba(204, 255, 0, 0.35)' : 'rgba(98, 0, 238, 0.35)' }]} />
-          <View style={[styles.intensitySquare, { backgroundColor: isDark ? 'rgba(204, 255, 0, 0.7)' : 'rgba(98, 0, 238, 0.7)' }]} />
-          <View style={[styles.intensitySquare, { backgroundColor: theme.primary }]} />
-          <Text style={[styles.intensityText, { color: theme.textSecondary }]}>NONE</Text>
-          <Text style={[styles.intensityText, { color: theme.primary }]}>FULL</Text>
-        </View>
+        <Heatmap
+          data={heatmapData}
+          startDate={new Date(Date.now() - 125 * 24 * 60 * 60 * 1000)}
+          endDate={new Date()}
+          width={heatmapWidth}
+          height={heatmapCellSize * 7 + (7 - 1) * heatmapCellSpacing + 8}
+          cellSize={heatmapCellSize}
+          cellSpacing={heatmapCellSpacing}
+          layout="calendar"
+          cellShape="rounded"
+          animated={false}
+          showMonthLabels={false}
+          showWeekdayLabels={false}
+          colorScheme={heatmapColorScheme}
+          theme={{
+            colors: {
+              background: 'transparent',
+              text: theme.text,
+              border: 'transparent',
+              tooltip: '#111111',
+              tooltipText: '#FFFFFF',
+            },
+            spacing: { cell: heatmapCellSpacing, margin: 0, padding: 0 },
+            typography: {
+              fontSize: 10,
+              fontWeight: '500',
+              fontFamily: monoFont,
+            },
+          }}
+          style={{ width: '100%', alignSelf: 'stretch' }}
+        />
       </View>
 
       <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>// HABITS</Text>
@@ -264,7 +271,10 @@ const HomeScreen = ({ navigation }: any) => {
         ? `${item.time}`
         : '8:00 AM · 30 min';
 
-    const completedBorderColor = isDark ? 'rgba(204, 255, 0, 0.35)' : 'rgba(98, 0, 238, 0.35)';
+    const completedBorderColor = isDark ? theme.primary : 'rgba(98, 0, 238, 0.35)';
+    const cardBackground = isDark
+      ? '#161618'
+      : isCompletedToday ? '#F4FBF0' : '#FFFFFF';
 
     return (
       <TouchableOpacity
@@ -272,11 +282,9 @@ const HomeScreen = ({ navigation }: any) => {
         style={[
           styles.card,
           {
-            borderWidth: 1,
+            borderWidth: 0.8,
             borderColor: isCompletedToday ? completedBorderColor : subtleBorderColor,
-            backgroundColor: isCompletedToday
-              ? (isDark ? '#0D140A' : '#F4FBF0')
-              : (isDark ? '#161618' : '#FFFFFF'),
+            backgroundColor: cardBackground,
           },
         ]}
         onPress={() =>
@@ -429,45 +437,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     marginBottom: 12,
   },
-  fullMatrixContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    width: '100%',
-  },
-  fullMatrixColumn: {
-    flexDirection: 'column',
-    justifyContent: 'space-between',
-    flex: 1,
-    alignItems: 'center',
-    gap: 4,
-  },
-  fullMatrixSquare: {
-    width: '85%',
-    aspectRatio: 1,
-    borderRadius: 3,
-  },
-  intensityRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 14,
-  },
-  intensityLabel: {
-    fontSize: 11,
-    fontFamily: monoFont,
-    letterSpacing: 0.5,
-  },
-  intensitySquare: {
-    width: 10,
-    height: 10,
-    borderRadius: 2,
-  },
-  intensityText: {
-    fontSize: 11,
-    fontFamily: monoFont,
-    marginLeft: 2,
-  },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -513,3 +482,4 @@ const styles = StyleSheet.create({
 });
 
 export default HomeScreen;
+
