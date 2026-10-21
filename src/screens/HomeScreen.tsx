@@ -1,13 +1,28 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useLayoutEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Habit } from '../types';
 import { getHabits, saveHabits } from '../storage';
 import RoundCheckbox from '../components/RoundCheckbox';
+import { useTheme } from '../theme/ThemeContext'; // <--- Импорт
 
 const HomeScreen = ({ navigation }: any) => {
+  const { theme, isDark, toggleTheme } = useTheme(); // <--- Достаем тему
   const [habits, setHabits] = useState<Habit[]>([]);
   const today = new Date().toISOString().split('T')[0];
+
+  // Добавляем кнопку смены темы в шапку навигации
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerStyle: { backgroundColor: theme.background },
+      headerTintColor: theme.text,
+      headerRight: () => (
+        <TouchableOpacity onPress={toggleTheme} style={{ marginRight: 16 }}>
+          <Text style={{ fontSize: 20 }}>{isDark ? '☀️' : '🌙'}</Text>
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, theme, isDark]);
 
   useFocusEffect(
     useCallback(() => {
@@ -36,13 +51,12 @@ const HomeScreen = ({ navigation }: any) => {
 
     return (
       <TouchableOpacity
-        style={[styles.card, { backgroundColor: item.color }]}
+        style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}
         onPress={() => navigation.navigate('HabitDetails', { habitTitle: item.title, habitId: item.id })}
       >
         <Text style={styles.emoji}>{item.emoji}</Text>
-        <Text style={styles.cardTitle}>{item.title}</Text>
+        <Text style={[styles.cardTitle, { color: theme.text }]}>{item.title}</Text>
 
-        {/* Наш кастомный компонент */}
         <RoundCheckbox
           isChecked={isCompletedToday}
           onPress={() => toggleHabit(item.id)}
@@ -52,9 +66,9 @@ const HomeScreen = ({ navigation }: any) => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       {habits.length === 0 ? (
-        <Text style={styles.emptyText}>Пока нет привычек. Добавьте первую!</Text>
+        <Text style={[styles.emptyText, { color: theme.textSecondary }]}>Пока нет привычек. Добавьте первую!</Text>
       ) : (
         <FlatList
           data={habits}
@@ -64,17 +78,18 @@ const HomeScreen = ({ navigation }: any) => {
         />
       )}
       <TouchableOpacity
-        style={styles.fab}
+        style={[styles.fab, { backgroundColor: theme.primary }]}
         onPress={() => navigation.navigate('AddHabit')}
       >
-        <Text style={styles.fabText}>+</Text>
+        <Text style={[styles.fabText, { color: isDark ? '#000' : '#fff' }]}>+</Text>
       </TouchableOpacity>
     </View>
   );
 };
 
+// Оставляем только структурные стили, цвета убираем
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  container: { flex: 1 },
   listContainer: { padding: 16 },
   card: {
     flexDirection: 'row',
@@ -85,7 +100,7 @@ const styles = StyleSheet.create({
   },
   emoji: { fontSize: 24, marginRight: 12 },
   cardTitle: { flex: 1, fontSize: 18, fontWeight: '600' },
-  emptyText: { textAlign: 'center', marginTop: 50, fontSize: 16, color: '#888' },
+  emptyText: { textAlign: 'center', marginTop: 50, fontSize: 16 },
   fab: {
     position: 'absolute',
     right: 20,
@@ -93,12 +108,11 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#6200ee',
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 5,
   },
-  fabText: { color: '#fff', fontSize: 30, fontWeight: 'bold' },
+  fabText: { fontSize: 30, fontWeight: 'bold' },
 });
 
 export default HomeScreen;
