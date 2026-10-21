@@ -1,26 +1,41 @@
 import React from 'react';
-import { SafeAreaView, Text, StyleSheet } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+
 import HomeScreen from './src/screens/HomeScreen';
+import AddHabitScreen from './src/screens/AddHabitScreen';
+import HabitDetailsScreen from './src/screens/HabitDetailsScreen';
+
+const Stack = createNativeStackNavigator();
 
 function App() {
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-          <HomeScreen />
-        </SafeAreaView>
+    <NavigationContainer>
+      <Stack.Navigator
+        initialRouteName="Home"
+        screenOptions={{
+          headerStyle: { backgroundColor: '#6200ee' },
+          headerTintColor: '#fff',
+        }}
+      >
+        <Stack.Screen
+          name="Home"
+          component={HomeScreen}
+          options={{ title: 'Мои привычки' }}
+        />
+        <Stack.Screen
+          name="AddHabit"
+          component={AddHabitScreen}
+          options={{ title: 'Новая привычка' }}
+        />
+        <Stack.Screen
+          name="HabitDetails"
+          component={HabitDetailsScreen}
+          options={{ title: 'Детали привычки' }}
+        />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-  },
-  text: {
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-});
 
 export default App;
