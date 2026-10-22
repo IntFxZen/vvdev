@@ -14,12 +14,10 @@ import RNDateTimePicker, { DateTimePickerAndroid } from '@react-native-community
 import { getHabits, saveHabits } from '../storage';
 import { useTheme } from '../theme/ThemeContext';
 import { monoFont } from '../theme/fonts';
+import { createId, todayDateKey } from '../utils/date';
+import { normalizeHabitTitle } from '../utils/habits';
 
 const DURATION_OPTIONS = ['15 MIN', '30 MIN', '60 MIN'];
-
-const normalizeHabitTitle = (value: string): string => {
-  return value.trim().replace(/\s+/g, ' ').toLowerCase();
-};
 
 const AddHabitScreen = ({ navigation }: any) => {
   const { theme, isDark } = useTheme();
@@ -92,11 +90,12 @@ const AddHabitScreen = ({ navigation }: any) => {
     }
 
     const newHabit = {
-      id: Date.now().toString(),
+      id: createId(),
       title: title.trim(),
       emoji: emoji.trim() || '🎯',
       time: formattedTimeString,
       duration: duration.trim() || '30 min',
+      createdAt: todayDateKey(),
       history: [],
     };
 

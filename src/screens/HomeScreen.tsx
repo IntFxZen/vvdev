@@ -16,49 +16,11 @@ import RoundCheckbox from '../components/RoundCheckbox';
 import { useTheme } from '../theme/ThemeContext';
 import { monoFont } from '../theme/fonts';
 import { formatDateKey } from '../utils/date';
-
-const calculateStreak = (habits: Habit[]): number => {
-  if (habits.length === 0) return 0;
-
-  let maxStreak = 0;
-
-  habits.forEach((habit) => {
-    if (!habit.history || habit.history.length === 0) return;
-
-    let currentHabitStreak = 0;
-    let checkDate = new Date();
-    const checkDateStr = formatDateKey(checkDate);
-    let isDone = habit.history.includes(checkDateStr);
-
-    if (!isDone) {
-      checkDate.setDate(checkDate.getDate() - 1);
-      const yesterdayStr = formatDateKey(checkDate);
-      isDone = habit.history.includes(yesterdayStr);
-    }
-
-    if (isDone) {
-      while (true) {
-        const dateStr = formatDateKey(checkDate);
-        if (habit.history.includes(dateStr)) {
-          currentHabitStreak++;
-          checkDate.setDate(checkDate.getDate() - 1);
-        } else {
-          break;
-        }
-      }
-    }
-
-    if (currentHabitStreak > maxStreak) {
-      maxStreak = currentHabitStreak;
-    }
-  });
-
-  return maxStreak;
-};
+import { formatHabitSchedule, longestCurrentStreak } from '../utils/habits';
 
 const HomeScreen = ({ navigation }: any) => {
   const { theme, isDark, toggleTheme } = useTheme();
-  const [habits, setHabits] = useState<Habit[]>([]);
+  const [habits, setHabits] = useState<Habit[]>(() => getHabits());
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -118,15 +80,23 @@ const HomeScreen = ({ navigation }: any) => {
     const currentHabits = getHabits();
     const updatedHabits = currentHabits.map((habit) => {
       if (habit.id === id) {
-        const isCompletedToday = habit.history.includes(todayDate);
+        const history = habit.history || [];
+        const isCompletedToday = history.includes(todayDate);
         const newHistory = isCompletedToday
-          ? habit.history.filter((date) => date !== todayDate)
-          : [...habit.history, todayDate];
+          ? history.filter((date) => date !== todayDate)
+          : [...history, todayDate];
         return { ...habit, history: newHistory };
       }
       return habit;
     });
-    saveHabits(updatedHabits);
+    const isSaved = saveHabits(updatedHabits);
+    if (!isSaved) {
+      Alert.alert(
+        'Save Failed',
+        'We could not update this habit right now. Please try again.'
+      );
+      return;
+    }
     setHabits(updatedHabits);
   };
 
@@ -164,14 +134,14 @@ const HomeScreen = ({ navigation }: any) => {
     clearSelection();
   };
 
-  const streak = calculateStreak(habits);
-  const doneTodayCount = habits.filter((h) => h.history.includes(todayDate)).length;
+  const streak = longestCurrentStreak(habits);
+  const doneTodayCount = habits.filter((h) => (h.history || []).includes(todayDate)).length;
 
   const filteredHabits = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
 
     return habits.filter((habit) => {
-      const isDoneToday = habit.history.includes(todayDate);
+      const isDoneToday = (habit.history || []).includes(todayDate);
       if (completionFilter === 'done' && !isDoneToday) return false;
       if (completionFilter === 'pending' && isDoneToday) return false;
 
@@ -224,13 +194,9 @@ const HomeScreen = ({ navigation }: any) => {
 
   const renderItem = ({ item }: { item: Habit }) => {
     const isSelected = selectedIds.includes(item.id);
-    const isCompletedToday = item.history.includes(todayDate);
+    const isCompletedToday = (item.history || []).includes(todayDate);
     const formattedTitle = (item.title || '').toUpperCase().replace(/\s+/g, '_');
-    const timeSubtitle = item.time && item.duration
-      ? `${item.time} · ${item.duration}`
-      : item.time
-        ? `${item.time}`
-        : '8:00 AM · 30 min';
+    const timeSubtitle = formatHabitSchedule(item);
 
     const cardBackground = selectionMode
       ? theme.card
@@ -284,9 +250,11 @@ const HomeScreen = ({ navigation }: any) => {
           <Text style={[styles.cardTitle, { color: theme.text }]}>
             {item.emoji ? `${item.emoji} ${formattedTitle}` : formattedTitle}
           </Text>
-          <Text style={[styles.cardSubtitle, { color: theme.textSecondary }]}>
-            {timeSubtitle}
-          </Text>
+          {timeSubtitle ? (
+            <Text style={[styles.cardSubtitle, { color: theme.textSecondary }]}>
+              {timeSubtitle}
+            </Text>
+          ) : null}
         </View>
 
         {!selectionMode && (
@@ -427,6 +395,7 @@ const HomeScreen = ({ navigation }: any) => {
 
       <FlatList
         data={filteredHabits}
+        extraData={{ selectionMode, selectedIds, theme, todayDate }}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         ListHeaderComponent={renderHeader}
@@ -579,11 +548,6 @@ const styles = StyleSheet.create({
     fontFamily: monoFont,
   },
   selectionBar: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
     padding: 16,
     borderBottomWidth: 1,
   },

@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { getHabits, saveHabits } from '../storage';
@@ -12,6 +13,7 @@ import { Habit } from '../types';
 import { useTheme } from '../theme/ThemeContext';
 import { monoFont } from '../theme/fonts';
 import { formatDateKey } from '../utils/date';
+import { formatHabitSchedule } from '../utils/habits';
 
 type HistoryDay = {
   dateStr: string;
@@ -53,16 +55,19 @@ const getRecentDays = (history: string[], numDays = 35): HistoryDay[] => {
 const HabitDetailsScreen = ({ route }: any) => {
   const { habitId } = route.params || {};
   const { theme, isDark } = useTheme();
-  const [habit, setHabit] = useState<Habit | null>(null);
+  const [habit, setHabit] = useState<Habit | null>(() => {
+    if (!habitId) {
+      return null;
+    }
+    return getHabits().find((item) => item.id === habitId) ?? null;
+  });
 
   const subtleBorderColor = isDark ? 'rgba(255, 255, 255, 0.08)' : '#E5E5EA';
 
   const loadHabit = useCallback(() => {
     const habits = getHabits();
     const found = habits.find((h) => h.id === habitId);
-    if (found) {
-      setHabit(found);
-    }
+    setHabit(found ?? null);
   }, [habitId]);
 
   useFocusEffect(
@@ -77,16 +82,24 @@ const HabitDetailsScreen = ({ route }: any) => {
     const habits = getHabits();
     const updatedHabits = habits.map((h) => {
       if (h.id === habit.id) {
-        const hasDate = h.history.includes(dateStr);
+        const history = h.history || [];
+        const hasDate = history.includes(dateStr);
         const newHistory = hasDate
-          ? h.history.filter((d) => d !== dateStr)
-          : [...h.history, dateStr];
+          ? history.filter((d) => d !== dateStr)
+          : [...history, dateStr];
         return { ...h, history: newHistory };
       }
       return h;
     });
 
-    saveHabits(updatedHabits);
+    const isSaved = saveHabits(updatedHabits);
+    if (!isSaved) {
+      Alert.alert(
+        'Save Failed',
+        'We could not update this habit right now. Please try again.'
+      );
+      return;
+    }
     const updatedCurrent = updatedHabits.find((h) => h.id === habit.id);
     if (updatedCurrent) {
       setHabit(updatedCurrent);
@@ -99,12 +112,7 @@ const HabitDetailsScreen = ({ route }: any) => {
 
   const totalCompleted = habit?.history?.length || 0;
   const formattedTitle = (habit?.title || '').toUpperCase().replace(/\s+/g, '_');
-  const timeSubtitle =
-    habit?.time && habit?.duration
-      ? `${habit.time} · ${habit.duration}`
-      : habit?.time
-      ? `${habit.time}`
-      : '08:00 AM · 30 min';
+  const timeSubtitle = habit ? formatHabitSchedule(habit) : null;
 
   if (!habit) {
     return (
@@ -136,9 +144,11 @@ const HabitDetailsScreen = ({ route }: any) => {
         <Text style={[styles.habitTitle, { color: theme.text }]}>
           {habit.emoji ? `${habit.emoji} ${formattedTitle}` : formattedTitle}
         </Text>
-        <Text style={[styles.habitSubtitle, { color: theme.textSecondary }]}>
-          {timeSubtitle}
-        </Text>
+        {timeSubtitle ? (
+          <Text style={[styles.habitSubtitle, { color: theme.textSecondary }]}>
+            {timeSubtitle}
+          </Text>
+        ) : null}
 
         <View style={styles.statsRow}>
           <View

@@ -6,7 +6,11 @@ export const storage = createMMKV();
 export const getHabits = (): Habit[] => {
   try {
     const habitsString = storage.getString('habits');
-    return habitsString ? JSON.parse(habitsString) : [];
+    if (!habitsString) {
+      return [];
+    }
+    const parsed = JSON.parse(habitsString);
+    return Array.isArray(parsed) ? parsed : [];
   } catch (error) {
     console.warn('Failed to read habits from storage', error);
     return [];
