@@ -15,13 +15,7 @@ import { getHabits, saveHabits, removeHabits } from '../storage';
 import RoundCheckbox from '../components/RoundCheckbox';
 import { useTheme } from '../theme/ThemeContext';
 import { monoFont } from '../theme/fonts';
-
-const formatLocalDateKey = (date: Date): string => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
+import { formatDateKey } from '../utils/date';
 
 const calculateStreak = (habits: Habit[]): number => {
   if (habits.length === 0) return 0;
@@ -33,18 +27,18 @@ const calculateStreak = (habits: Habit[]): number => {
 
     let currentHabitStreak = 0;
     let checkDate = new Date();
-    const checkDateStr = formatLocalDateKey(checkDate);
+    const checkDateStr = formatDateKey(checkDate);
     let isDone = habit.history.includes(checkDateStr);
 
     if (!isDone) {
       checkDate.setDate(checkDate.getDate() - 1);
-      const yesterdayStr = formatLocalDateKey(checkDate);
+      const yesterdayStr = formatDateKey(checkDate);
       isDone = habit.history.includes(yesterdayStr);
     }
 
     if (isDone) {
       while (true) {
-        const dateStr = formatLocalDateKey(checkDate);
+        const dateStr = formatDateKey(checkDate);
         if (habit.history.includes(dateStr)) {
           currentHabitStreak++;
           checkDate.setDate(checkDate.getDate() - 1);
@@ -70,7 +64,7 @@ const HomeScreen = ({ navigation }: any) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [completionFilter, setCompletionFilter] = useState<'all' | 'done' | 'pending'>('all');
   const today = new Date();
-  const todayDate = formatLocalDateKey(today);
+  const todayDate = formatDateKey(today);
 
   const formattedDate = new Date().toLocaleDateString('en-US', {
     month: 'short',
@@ -439,8 +433,8 @@ const HomeScreen = ({ navigation }: any) => {
         ListEmptyComponent={
           <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
             {habits.length === 0
-              ? 'Пока нет привычек. Добавьте первую!'
-              : 'Ничего не найдено по текущему фильтру.'}
+              ? 'No habits yet. Add your first one!'
+              : 'No habits match the current filter.'}
           </Text>
         }
         showsVerticalScrollIndicator={false}

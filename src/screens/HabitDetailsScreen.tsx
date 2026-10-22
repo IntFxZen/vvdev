@@ -11,13 +11,7 @@ import { getHabits, saveHabits } from '../storage';
 import { Habit } from '../types';
 import { useTheme } from '../theme/ThemeContext';
 import { monoFont } from '../theme/fonts';
-
-const formatDateKey = (date: Date): string => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
+import { formatDateKey } from '../utils/date';
 
 type HistoryDay = {
   dateStr: string;
@@ -33,10 +27,10 @@ const getRecentDays = (history: string[], numDays = 35): HistoryDay[] => {
   const today = new Date();
 
   for (let i = numDays - 1; i >= 0; i--) {
-    const d = new Date();
+    const d = new Date(today);
     d.setDate(today.getDate() - i);
 
-    const dateStr = d.toISOString().split('T')[0];
+    const dateStr = formatDateKey(d);
     const isCompleted = (history || []).includes(dateStr);
     const isToday = i === 0;
 

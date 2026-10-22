@@ -95,7 +95,6 @@ const AddHabitScreen = ({ navigation }: any) => {
       id: Date.now().toString(),
       title: title.trim(),
       emoji: emoji.trim() || '🎯',
-      color: '#E3F2FD',
       time: formattedTimeString,
       duration: duration.trim() || '30 min',
       history: [],
@@ -192,11 +191,19 @@ const AddHabitScreen = ({ navigation }: any) => {
               value={selectedTime}
               mode="time"
               display="spinner"
-              onChange={(event, date) => {
-                setShowIosTimePicker(false);
+              onChange={(_event, date) => {
                 if (date) setSelectedTime(date);
               }}
             />
+            <TouchableOpacity
+              style={styles.iosPickerDoneButton}
+              onPress={() => setShowIosTimePicker(false)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.iosPickerDoneText, { color: theme.primary }]}>
+                DONE
+              </Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -327,6 +334,15 @@ const styles = StyleSheet.create({
   iosPickerContainer: {
     marginTop: 8,
     alignItems: 'center',
+  },
+  iosPickerDoneButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  iosPickerDoneText: {
+    fontSize: 13,
+    fontFamily: monoFont,
+    letterSpacing: 0.5,
   },
   optionsRow: {
     flexDirection: 'row',
