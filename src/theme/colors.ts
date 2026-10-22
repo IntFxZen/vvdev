@@ -44,7 +44,7 @@ export const darkTheme = {
 
   // Custom button / card backgrounds
   buttonBackground: '#1C1C1E',
-  cardCompleted: '#161618', // В темной теме фон выполненной привычки НЕ меняется
+  cardCompleted: '#161618',
   cardPending: '#161618',
 
   // Stat Card & Borders
