@@ -27,14 +27,15 @@ const HomeScreen = ({ navigation }: any) => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [completionFilter, setCompletionFilter] = useState<CompletionFilter>('all');
-  const today = new Date();
-  const todayDate = formatDateKey(today);
+  const [todayDate, setTodayDate] = useState(() => formatDateKey(new Date()));
 
-  const formattedDate = new Date().toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
+  const formattedDate = useMemo(() => {
+    return new Date().toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  }, [todayDate]);
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -57,6 +58,7 @@ const HomeScreen = ({ navigation }: any) => {
   useFocusEffect(
     useCallback(() => {
       setHabits(getHabits());
+      setTodayDate(formatDateKey(new Date()));
     }, [])
   );
 
