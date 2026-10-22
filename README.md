@@ -1,77 +1,42 @@
-# ⚡ HabitTracker — React Native Habit Tracker App
+# Habit Tracker (React Native Test Task)
 
-Современное мобильное приложение для трекинга ежедневных привычек, разработанное на React Native с фокусом на высокую производительность, минималистичный дизайн и удобство использования.
+A mobile application to track daily habits, toggle completion, and monitor progress.
 
----
+## Tech Stack
+*   **React Native CLI** (TypeScript)
+*   **React Navigation** (Native Stack)
+*   **React Native MMKV** (Local storage)
+*   **React Native Community DateTimePicker** (Native time picker)
 
-## 🚀 Основной функционал
+## Implemented Features
+*   **Habits List:** Display habits with name, emoji, and today's status. Search and filter (All / Done / Pending).
+*   **Add Habit:** Form with name, emoji, time, and duration. Includes duplicate and empty-field validation.
+*   **Toggle Status:** Tap to mark as done/pending with instant UI update.
+*   **History & Stats:** Detailed screen with a 35-day history log, completion rate, and streak calculation.
+*   **Manage Habits:** Bulk delete via long-press selection mode.
+*   **Theming:** Automatically follows system light/dark mode.
+*   **Edge Cases:** Handled empty states, duplicates, and midnight date rollover.
 
-1. **Главный экран со списком привычек (`HomeScreen`)**:
-   - Отображение привычек с динамической датой, эмодзи, временем и статусом (`[DONE]` / `[PENDING]`).
-   - Подсчет текущего стрика (`STREAK`) и прогресса за день (`DONE TODAY`).
-   - Поисковая строка (`Search habits`) и быстрая фильтрация по статусам (`ALL`, `DONE`, `PENDING`).
-   - Режим мультивыбора (по долгому нажатию) для удобного удаления привычек.
+## How to Run
 
-2. **Экран создания привычки (`AddHabitScreen`)**:
-   - Обязательное поле названия с автоматической валидацией и защитой от дубликатов.
-   - Выбор эмодзи (с ограничением в один символ).
-   - **Нативный выбор времени (`REMINDER_TIME`)**: встроенный системный аналоговый/цифровой циферблат часов (`@react-native-community/datetimepicker`).
-   - Переключатель целевой длительности (`TARGET_DURATION`).
-
-3. **История и детали привычки (`HabitDetailsScreen`)**:
-   - Статистика выполнений (всего дней и % за последние 35 дней).
-   - **Календарная сетка активности (Activity Heatmap)** за 35 дней с цветовой градацией интенсивности.
-   - Лог истории (`// HISTORY_LOG`) с возможностью интерактивного изменения статуса за любую прошлую дату.
-
-4. **Темная и светлая темы**:
-   - Переключение темы в один клик.
-   - Фирменная моноширинная типографика **Lilex** (с уникальной точкой внутри нулей `0`), подключенная нативно под iOS и Android.
-
-5. **Сверхбыстрое локальное хранилище**:
-   - Хранение всех данных в **MMKV** (`react-native-mmkv`), работающем на C++ JSI без накладных расходов JS-моста.
-
----
-
-## 🛠 Технический стек
-
-- **Framework**: React Native 0.88 (React Native CLI)
-- **Language**: TypeScript
-- **Navigation**: React Navigation (Native Stack)
-- **Storage**: MMKV (`react-native-mmkv`)
-- **Native TimePicker**: `@react-native-community/datetimepicker`
-- **Typography**: Lilex Font
-- **State Management**: React Hooks & Context API (`ThemeContext`)
-
----
-
-## 📱 Инструкция по запуску
-
-### Предварительные требования
-- Node.js >= 22
-- Android Studio / Android SDK (для Android)
-- Xcode (для iOS)
-
-### Установка зависимостей
-
+1. Install dependencies:
 ```bash
 npm install
 ```
 
-### Запуск Metro Bundler
-
-```bash
-npm start
-```
-
-### Запуск на Android
-
-```bash
-npm run android
-```
-
-### Запуск на iOS
-
+2. (iOS only) Install native pods:
 ```bash
 cd ios && pod install && cd ..
-npm run ios
 ```
+
+3. Start the app:
+* For Android: `npm run android`
+* For iOS: `npm run ios`
+
+## Screenshots
+
+|                    Home Screen                    |                     Add Habit                     |                  Details & Stats                  | Delete Habits                                     |
+|:-------------------------------------------------:|:-------------------------------------------------:|:-------------------------------------------------:|---------------------------------------------------|
+| <img src="screenshots/android/1.jpg" width="250"> | <img src="screenshots/android/2.jpg" width="250"> | <img src="screenshots/android/3.jpg" width="250"> | <img src="screenshots/android/4.jpg" width="250"> |
+
+***
