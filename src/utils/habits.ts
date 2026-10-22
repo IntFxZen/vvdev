@@ -24,12 +24,6 @@ export const formatHabitSchedule = (
   return null;
 };
 
-export const toggleDateInHistory = (history: string[], dateStr: string): string[] => {
-  return history.includes(dateStr)
-    ? history.filter((date) => date !== dateStr)
-    : [...history, dateStr];
-};
-
 export const currentStreak = (history: string[] | undefined, fromDate = new Date()): number => {
   if (!history?.length) {
     return 0;
