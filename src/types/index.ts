@@ -5,4 +5,5 @@ export type Habit = {
   history: string[];
   time?: string;
   duration?: string;
+  createdAt?: string;
 };

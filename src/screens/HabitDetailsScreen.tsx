@@ -24,15 +24,26 @@ type HistoryDay = {
   isToday: boolean;
 };
 
-const getRecentDays = (history: string[], numDays = 35): HistoryDay[] => {
+const getRecentDays = (history: string[], createdAt?: string, maxDays = 35): HistoryDay[] => {
   const days: HistoryDay[] = [];
   const today = new Date();
+  const createdDateStr =
+    createdAt ||
+    (history && history.length > 0
+      ? [...history].sort()[0]
+      : formatDateKey(today));
 
-  for (let i = numDays - 1; i >= 0; i--) {
+  for (let i = maxDays - 1; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(today.getDate() - i);
 
     const dateStr = formatDateKey(d);
+
+    // Skip dates before the habit creation date
+    if (dateStr < createdDateStr) {
+      continue;
+    }
+
     const isCompleted = (history || []).includes(dateStr);
     const isToday = i === 0;
 
@@ -107,12 +118,18 @@ const HabitDetailsScreen = ({ route }: any) => {
   };
 
   const recentDays = useMemo(() => {
-    return getRecentDays(habit?.history || [], 35);
-  }, [habit?.history]);
+    return getRecentDays(habit?.history || [], habit?.createdAt, 35);
+  }, [habit?.history, habit?.createdAt]);
 
   const totalCompleted = habit?.history?.length || 0;
   const formattedTitle = (habit?.title || '').toUpperCase().replace(/\s+/g, '_');
   const timeSubtitle = habit ? formatHabitSchedule(habit) : null;
+
+  const ratePercentage = useMemo(() => {
+    if (!recentDays.length) return '0%';
+    const count = recentDays.filter((d) => d.isCompleted).length;
+    return `${Math.round((count / recentDays.length) * 100)}%`;
+  }, [recentDays]);
 
   if (!habit) {
     return (
@@ -180,10 +197,10 @@ const HabitDetailsScreen = ({ route }: any) => {
             ]}
           >
             <Text style={[styles.miniStatLabel, { color: theme.textSecondary }]}>
-              35-DAY RATE
+              RATE
             </Text>
             <Text style={[styles.miniStatValue, { color: theme.text }]}>
-              {Math.round((recentDays.filter((d) => d.isCompleted).length / 35) * 100)}%
+              {ratePercentage}
             </Text>
           </View>
         </View>
