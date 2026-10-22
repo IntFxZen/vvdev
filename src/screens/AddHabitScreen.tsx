@@ -52,10 +52,10 @@ const AddHabitScreen = ({ navigation }: any) => {
   const focusedBorderColor = isDark ? 'rgba(204, 255, 0, 0.7)' : theme.primary;
 
   const formattedTimeString = useMemo(() => {
-    return selectedTime.toLocaleTimeString('en-US', {
+    return selectedTime.toLocaleTimeString('en-GB', {
       hour: '2-digit',
       minute: '2-digit',
-      hour12: true,
+      hour12: false,
     });
   }, [selectedTime]);
 

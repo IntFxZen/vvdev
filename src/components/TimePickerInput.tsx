@@ -66,6 +66,8 @@ const TimePickerInput: React.FC<TimePickerInputProps> = ({
             value={selectedTime}
             mode="time"
             display="spinner"
+            is24Hour={true}
+            locale="en_GB"
             onChange={(_event, date) => {
               if (date) onTimeChange(date);
             }}
