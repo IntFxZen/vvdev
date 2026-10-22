@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react';
 import {
-  View,
   Text,
   TextInput,
   TouchableOpacity,
@@ -9,15 +8,15 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  View,
 } from 'react-native';
-import RNDateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { getHabits, saveHabits } from '../storage';
 import { useTheme } from '../theme/ThemeContext';
 import { monoFont } from '../theme/fonts';
 import { createId, todayDateKey } from '../utils/date';
 import { normalizeHabitTitle } from '../utils/habits';
-
-const DURATION_OPTIONS = ['15 MIN', '30 MIN', '60 MIN'];
+import DurationPicker from '../components/DurationPicker';
+import TimePickerInput from '../components/TimePickerInput';
 
 const AddHabitScreen = ({ navigation }: any) => {
   const { theme, isDark } = useTheme();
@@ -30,7 +29,6 @@ const AddHabitScreen = ({ navigation }: any) => {
     d.setHours(6, 0, 0, 0);
     return d;
   });
-  const [showIosTimePicker, setShowIosTimePicker] = useState(false);
 
   const [isTitleFocused, setIsTitleFocused] = useState(false);
   const [isEmojiFocused, setIsEmojiFocused] = useState(false);
@@ -45,23 +43,6 @@ const AddHabitScreen = ({ navigation }: any) => {
       hour12: true,
     });
   }, [selectedTime]);
-
-  const openNativeTimePicker = () => {
-    if (Platform.OS === 'android') {
-      DateTimePickerAndroid.open({
-        value: selectedTime,
-        mode: 'time',
-        is24Hour: false,
-        onChange: (event, date) => {
-          if (event.type === 'set' && date) {
-            setSelectedTime(date);
-          }
-        },
-      });
-    } else {
-      setShowIosTimePicker((prev) => !prev);
-    }
-  };
 
   const handleEmojiChange = (text: string) => {
     const chars = Array.from(text);
@@ -163,92 +144,16 @@ const AddHabitScreen = ({ navigation }: any) => {
           onBlur={() => setIsEmojiFocused(false)}
         />
 
-        <Text style={[styles.label, { color: theme.textSecondary, marginTop: 20 }]}>
-          REMINDER_TIME
-        </Text>
-        <TouchableOpacity
-          style={[
-            styles.timeInputContainer,
-            {
-              borderColor: subtleBorderColor,
-              backgroundColor: isDark ? '#121212' : '#FFFFFF',
-              borderWidth: 1,
-            },
-          ]}
-          onPress={openNativeTimePicker}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.timeText, { color: theme.text }]}>
-            {formattedTimeString}
-          </Text>
-          <Text style={[styles.timeIcon, { color: theme.textSecondary }]}>⏱</Text>
-        </TouchableOpacity>
+        <TimePickerInput
+          selectedTime={selectedTime}
+          onTimeChange={setSelectedTime}
+          formattedTimeString={formattedTimeString}
+        />
 
-        {Platform.OS === 'ios' && showIosTimePicker && (
-          <View style={styles.iosPickerContainer}>
-            <RNDateTimePicker
-              value={selectedTime}
-              mode="time"
-              display="spinner"
-              onChange={(_event, date) => {
-                if (date) setSelectedTime(date);
-              }}
-            />
-            <TouchableOpacity
-              style={styles.iosPickerDoneButton}
-              onPress={() => setShowIosTimePicker(false)}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.iosPickerDoneText, { color: theme.primary }]}>
-                DONE
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        <Text style={[styles.label, { color: theme.textSecondary, marginTop: 20 }]}>
-          TARGET_DURATION
-        </Text>
-        <View style={styles.optionsRow}>
-          {DURATION_OPTIONS.map((opt) => {
-            const isSelected =
-              duration.toUpperCase() === opt || duration === opt.toLowerCase();
-            const completedBorderColor = isDark
-              ? 'rgba(204, 255, 0, 0.6)'
-              : 'rgba(98, 0, 238, 0.6)';
-
-            return (
-              <TouchableOpacity
-                key={opt}
-                style={[
-                  styles.durationPill,
-                  isSelected
-                    ? {
-                        borderColor: completedBorderColor,
-                        borderWidth: 1.5,
-                        backgroundColor: isDark ? '#0D140A' : '#F4FBF0',
-                      }
-                    : {
-                        borderColor: subtleBorderColor,
-                        borderWidth: 1,
-                        backgroundColor: isDark ? '#161618' : '#FFFFFF',
-                      },
-                ]}
-                onPress={() => setDuration(opt.toLowerCase())}
-                activeOpacity={0.7}
-              >
-                <Text
-                  style={[
-                    styles.durationText,
-                    { color: isSelected ? theme.primary : theme.textSecondary },
-                  ]}
-                >
-                  {opt}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+        <DurationPicker
+          duration={duration}
+          onSelectDuration={setDuration}
+        />
 
         <View style={styles.bottomButtonsContainer}>
           <TouchableOpacity
@@ -313,51 +218,6 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     fontSize: 15,
     fontFamily: monoFont,
-  },
-  timeInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  timeText: {
-    fontSize: 15,
-    fontFamily: monoFont,
-  },
-  timeIcon: {
-    fontSize: 16,
-    marginLeft: 8,
-  },
-  iosPickerContainer: {
-    marginTop: 8,
-    alignItems: 'center',
-  },
-  iosPickerDoneButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
-  iosPickerDoneText: {
-    fontSize: 13,
-    fontFamily: monoFont,
-    letterSpacing: 0.5,
-  },
-  optionsRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  durationPill: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 16,
-  },
-  durationText: {
-    fontSize: 13,
-    fontFamily: monoFont,
-    letterSpacing: 0.5,
   },
   bottomButtonsContainer: {
     marginTop: 40,
