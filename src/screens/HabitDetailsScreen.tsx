@@ -5,12 +5,12 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Alert,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { getHabits, saveHabits } from '../storage';
 import { Habit } from '../types';
 import HabitOverview from '../components/HabitOverview';
+import CustomAlert, { AlertButton } from '../components/CustomAlert';
 import { useTheme } from '../theme/ThemeContext';
 import { monoFont } from '../theme/fonts';
 import { formatDateKey } from '../utils/date';
@@ -73,6 +73,21 @@ const HabitDetailsScreen = ({ route }: any) => {
     return getHabits().find((item) => item.id === habitId) ?? null;
   });
 
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message?: string;
+    buttons?: AlertButton[];
+  }>({ visible: false, title: '' });
+
+  const showAlert = (titleStr: string, messageStr?: string, buttonsArr?: AlertButton[]) => {
+    setAlertConfig({ visible: true, title: titleStr, message: messageStr, buttons: buttonsArr });
+  };
+
+  const hideAlert = () => {
+    setAlertConfig((prev) => ({ ...prev, visible: false }));
+  };
+
   const subtleBorderColor = isDark ? 'rgba(255, 255, 255, 0.08)' : '#E5E5EA';
 
   const loadHabit = useCallback(() => {
@@ -105,7 +120,7 @@ const HabitDetailsScreen = ({ route }: any) => {
 
     const isSaved = saveHabits(updatedHabits);
     if (!isSaved) {
-      Alert.alert(
+      showAlert(
         'Save Failed',
         'We could not update this habit right now. Please try again.'
       );
@@ -212,6 +227,14 @@ const HabitDetailsScreen = ({ route }: any) => {
           </TouchableOpacity>
         ))}
       </View>
+
+      <CustomAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        buttons={alertConfig.buttons}
+        onRequestClose={hideAlert}
+      />
     </ScrollView>
   );
 };

@@ -4,7 +4,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
@@ -17,6 +16,7 @@ import { createId, todayDateKey } from '../utils/date';
 import { normalizeHabitTitle } from '../utils/habits';
 import DurationPicker from '../components/DurationPicker';
 import TimePickerInput from '../components/TimePickerInput';
+import CustomAlert, { AlertButton } from '../components/CustomAlert';
 
 const AddHabitScreen = ({ navigation }: any) => {
   const { theme, isDark } = useTheme();
@@ -32,6 +32,21 @@ const AddHabitScreen = ({ navigation }: any) => {
 
   const [isTitleFocused, setIsTitleFocused] = useState(false);
   const [isEmojiFocused, setIsEmojiFocused] = useState(false);
+
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message?: string;
+    buttons?: AlertButton[];
+  }>({ visible: false, title: '' });
+
+  const showAlert = (titleStr: string, messageStr?: string, buttonsArr?: AlertButton[]) => {
+    setAlertConfig({ visible: true, title: titleStr, message: messageStr, buttons: buttonsArr });
+  };
+
+  const hideAlert = () => {
+    setAlertConfig((prev) => ({ ...prev, visible: false }));
+  };
 
   const subtleBorderColor = isDark ? 'rgba(255, 255, 255, 0.08)' : '#E5E5EA';
   const focusedBorderColor = isDark ? 'rgba(204, 255, 0, 0.7)' : theme.primary;
@@ -55,7 +70,7 @@ const AddHabitScreen = ({ navigation }: any) => {
 
   const handleSave = () => {
     if (title.trim() === '') {
-      Alert.alert('Habit Name Required', 'Please enter a name for your habit.');
+      showAlert('Habit Name Required', 'Please enter a name for your habit.');
       return;
     }
 
@@ -66,7 +81,7 @@ const AddHabitScreen = ({ navigation }: any) => {
     );
 
     if (hasDuplicate) {
-      Alert.alert('Duplicate Habit', 'A habit with this name already exists.');
+      showAlert('Duplicate Habit', 'A habit with this name already exists.');
       return;
     }
 
@@ -82,7 +97,7 @@ const AddHabitScreen = ({ navigation }: any) => {
 
     const isSaved = saveHabits([...currentHabits, newHabit]);
     if (!isSaved) {
-      Alert.alert(
+      showAlert(
         'Save Failed',
         'We could not save your habit right now. Please try again.'
       );
@@ -194,6 +209,14 @@ const AddHabitScreen = ({ navigation }: any) => {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      <CustomAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        buttons={alertConfig.buttons}
+        onRequestClose={hideAlert}
+      />
     </KeyboardAvoidingView>
   );
 };

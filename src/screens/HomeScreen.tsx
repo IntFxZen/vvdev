@@ -4,7 +4,6 @@ import {
   Text,
   FlatList,
   StyleSheet,
-  Alert,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Habit } from '../types';
@@ -15,6 +14,7 @@ import SearchAndFilter, { CompletionFilter } from '../components/SearchAndFilter
 import SelectionBar from '../components/SelectionBar';
 import EmptyState from '../components/EmptyState';
 import HeaderAddButton from '../components/HeaderAddButton';
+import CustomAlert, { AlertButton } from '../components/CustomAlert';
 import { useTheme } from '../theme/ThemeContext';
 import { monoFont } from '../theme/fonts';
 import { formatDateKey } from '../utils/date';
@@ -28,6 +28,21 @@ const HomeScreen = ({ navigation }: any) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [completionFilter, setCompletionFilter] = useState<CompletionFilter>('all');
   const [todayDate, setTodayDate] = useState(() => formatDateKey(new Date()));
+
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message?: string;
+    buttons?: AlertButton[];
+  }>({ visible: false, title: '' });
+
+  const showAlert = (title: string, message?: string, buttons?: AlertButton[]) => {
+    setAlertConfig({ visible: true, title, message, buttons });
+  };
+
+  const hideAlert = () => {
+    setAlertConfig((prev) => ({ ...prev, visible: false }));
+  };
 
   const formattedDate = useMemo(() => {
     return new Date().toLocaleDateString('en-US', {
@@ -77,7 +92,7 @@ const HomeScreen = ({ navigation }: any) => {
     });
     const isSaved = saveHabits(updatedHabits);
     if (!isSaved) {
-      Alert.alert(
+      showAlert(
         'Save Failed',
         'We could not update this habit right now. Please try again.'
       );
@@ -108,16 +123,31 @@ const HomeScreen = ({ navigation }: any) => {
 
   const deleteSelectedHabits = () => {
     if (!selectedIds.length) return;
-    const removed = removeHabits(selectedIds);
-    if (!removed) {
-      Alert.alert(
-        'Delete Failed',
-        'We could not delete selected habits right now. Please try again.'
-      );
-      return;
-    }
-    setHabits(getHabits());
-    clearSelection();
+
+    const count = selectedIds.length;
+    showAlert(
+      'Delete Habits',
+      `Are you sure you want to delete ${count} habit${count > 1 ? 's' : ''}?`,
+      [
+        { text: 'CANCEL', style: 'cancel' },
+        {
+          text: 'DELETE',
+          style: 'destructive',
+          onPress: () => {
+            const removed = removeHabits(selectedIds);
+            if (!removed) {
+              showAlert(
+                'Delete Failed',
+                'We could not delete selected habits right now. Please try again.'
+              );
+              return;
+            }
+            setHabits(getHabits());
+            clearSelection();
+          },
+        },
+      ]
+    );
   };
 
   const streak = longestCurrentStreak(habits);
@@ -186,13 +216,21 @@ const HomeScreen = ({ navigation }: any) => {
 
       <FlatList
         data={filteredHabits}
-        extraData={{ selectionMode, selectedIds, theme, todayDate }}
+        extraData={selectedIds}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         ListHeaderComponent={renderHeader}
         ListEmptyComponent={<EmptyState hasHabits={habits.length > 0} />}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContainer}
+      />
+
+      <CustomAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        buttons={alertConfig.buttons}
+        onRequestClose={hideAlert}
       />
     </View>
   );
