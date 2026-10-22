@@ -3,20 +3,22 @@ import {
   View,
   Text,
   FlatList,
-  TouchableOpacity,
   StyleSheet,
-  Vibration,
-  TextInput,
   Alert,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Habit } from '../types';
 import { getHabits, saveHabits, removeHabits } from '../storage';
-import RoundCheckbox from '../components/RoundCheckbox';
+import HabitCard from '../components/HabitCard';
+import HabitStats from '../components/HabitStats';
+import SearchAndFilter, { CompletionFilter } from '../components/SearchAndFilter';
+import SelectionBar from '../components/SelectionBar';
+import EmptyState from '../components/EmptyState';
+import HeaderAddButton from '../components/HeaderAddButton';
 import { useTheme } from '../theme/ThemeContext';
 import { monoFont } from '../theme/fonts';
 import { formatDateKey } from '../utils/date';
-import { formatHabitSchedule, longestCurrentStreak } from '../utils/habits';
+import { longestCurrentStreak } from '../utils/habits';
 
 const HomeScreen = ({ navigation }: any) => {
   const { theme } = useTheme();
@@ -24,7 +26,7 @@ const HomeScreen = ({ navigation }: any) => {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [completionFilter, setCompletionFilter] = useState<'all' | 'done' | 'pending'>('all');
+  const [completionFilter, setCompletionFilter] = useState<CompletionFilter>('all');
   const today = new Date();
   const todayDate = formatDateKey(today);
 
@@ -47,22 +49,7 @@ const HomeScreen = ({ navigation }: any) => {
       headerTintColor: theme.text,
       headerShadowVisible: false,
       headerRight: () => (
-        <View style={styles.headerRightContainer}>
-          <TouchableOpacity
-            style={[
-              styles.addButton,
-              {
-                backgroundColor: theme.buttonBackground,
-                borderWidth: 1,
-                borderColor: theme.subtleBorder,
-              },
-            ]}
-            onPress={() => navigation.navigate('AddHabit')}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.addButtonText, { color: theme.primary }]}>+ NEW</Text>
-          </TouchableOpacity>
-        </View>
+        <HeaderAddButton onPress={() => navigation.navigate('AddHabit')} />
       ),
     });
   }, [navigation, theme, formattedDate]);
@@ -151,244 +138,49 @@ const HomeScreen = ({ navigation }: any) => {
 
   const renderHeader = () => (
     <View style={styles.headerSection}>
-      <View style={styles.statsRow}>
-        <View
-          style={[
-            styles.statCard,
-            styles.streakCard,
-            {
-              borderColor: theme.streakBorder,
-              backgroundColor: theme.streakCardBg,
-            },
-          ]}
-        >
-          <Text style={[styles.statLabel, { color: theme.textSecondary }]}>STREAK</Text>
-          <Text style={[styles.streakValue, { color: theme.primary }]}>
-            {streak} DAYS
-          </Text>
-        </View>
-
-        <View
-          style={[
-            styles.statCard,
-            {
-              backgroundColor: theme.cardCompleted,
-              borderWidth: 1,
-              borderColor: theme.subtleBorder,
-            },
-          ]}
-        >
-          <Text style={[styles.statLabel, { color: theme.textSecondary }]}>DONE TODAY</Text>
-          <Text style={[styles.doneValue, { color: theme.text }]}>
-            {doneTodayCount}/{habits.length}
-          </Text>
-        </View>
-      </View>
-
+      <HabitStats
+        streak={streak}
+        doneTodayCount={doneTodayCount}
+        totalHabits={habits.length}
+      />
       <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>// HABITS</Text>
     </View>
   );
 
-  const renderItem = ({ item }: { item: Habit }) => {
-    const isSelected = selectedIds.includes(item.id);
-    const isCompletedToday = (item.history || []).includes(todayDate);
-    const formattedTitle = (item.title || '').toUpperCase().replace(/\s+/g, '_');
-    const timeSubtitle = formatHabitSchedule(item);
-
-    const cardBackground = selectionMode
-      ? theme.card
-      : isCompletedToday
-      ? theme.cardCompleted
-      : theme.cardPending;
-
-    return (
-      <TouchableOpacity
-        activeOpacity={0.8}
-        style={[
-          styles.card,
-          {
-            borderWidth: 0.8,
-            borderColor: selectionMode
-              ? (isSelected ? theme.selectedCardBorder : theme.subtleBorder)
-              : isCompletedToday ? theme.completedBorder : theme.subtleBorder,
-            backgroundColor: cardBackground,
-          },
-        ]}
-        onPress={() => {
-          if (selectionMode) {
-            toggleSelection(item.id);
-            return;
-          }
-          navigation.navigate('HabitDetails', {
-            habitTitle: item.title,
-            habitId: item.id,
-          });
-        }}
-        onLongPress={() => {
-          startSelection(item.id);
-          Vibration.vibrate(10);
-        }}
-      >
-        <View style={styles.checkboxWrapper}>
-          <RoundCheckbox
-            isChecked={selectionMode ? isSelected : isCompletedToday}
-            variant={selectionMode ? 'delete' : 'check'}
-            onPress={() => {
-              if (selectionMode) {
-                toggleSelection(item.id);
-                return;
-              }
-              toggleHabit(item.id);
-            }}
-          />
-        </View>
-
-        <View style={styles.cardContent}>
-          <Text style={[styles.cardTitle, { color: theme.text }]}>
-            {item.emoji ? `${item.emoji} ${formattedTitle}` : formattedTitle}
-          </Text>
-          {timeSubtitle ? (
-            <Text style={[styles.cardSubtitle, { color: theme.textSecondary }]}>
-              {timeSubtitle}
-            </Text>
-          ) : null}
-        </View>
-
-        {!selectionMode && (
-          <TouchableOpacity
-            style={[
-              styles.statusBadge,
-              {
-                backgroundColor: isCompletedToday
-                  ? theme.doneBadgeBg
-                  : theme.pendingBadgeBg,
-              },
-            ]}
-            onPress={() => toggleHabit(item.id)}
-            activeOpacity={0.7}
-          >
-            <Text
-              style={[
-                styles.statusBadgeText,
-                {
-                  color: isCompletedToday
-                    ? theme.doneBadgeText
-                    : theme.pendingBadgeText,
-                },
-              ]}
-            >
-              {isCompletedToday ? '[DONE]' : '[PENDING]'}
-            </Text>
-          </TouchableOpacity>
-        )}
-      </TouchableOpacity>
-    );
-  };
+  const renderItem = ({ item }: { item: Habit }) => (
+    <HabitCard
+      item={item}
+      todayDate={todayDate}
+      selectionMode={selectionMode}
+      isSelected={selectedIds.includes(item.id)}
+      onPress={() =>
+        navigation.navigate('HabitDetails', {
+          habitTitle: item.title,
+          habitId: item.id,
+        })
+      }
+      onLongPress={() => startSelection(item.id)}
+      onToggle={() => toggleHabit(item.id)}
+      onToggleSelection={() => toggleSelection(item.id)}
+    />
+  );
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {selectionMode && (
-        <View
-          style={[
-            styles.selectionBar,
-            {
-              backgroundColor: theme.selectionBarBg,
-              borderColor: theme.selectionBarBorder,
-            },
-          ]}
-        >
-          <Text style={[styles.selectionText, { color: theme.textSecondary }]}>
-            {selectedIds.length} selected
-          </Text>
-          <View style={styles.selectionActions}>
-            <TouchableOpacity
-              style={[styles.selectionAction, { backgroundColor: theme.buttonBackground }]}
-              onPress={clearSelection}
-            >
-              <Text style={[styles.selectionActionText, { color: theme.text }]}>CANCEL</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.selectionAction, { backgroundColor: theme.deleteButtonBg }]}
-              onPress={deleteSelectedHabits}
-              disabled={!selectedIds.length}
-            >
-              <Text style={[styles.selectionActionText, { color: theme.deleteButtonText }]}>DELETE</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        <SelectionBar
+          selectedCount={selectedIds.length}
+          onClearSelection={clearSelection}
+          onDeleteSelected={deleteSelectedHabits}
+        />
       )}
 
-      <View
-        style={[
-          styles.searchRow,
-          {
-            backgroundColor: theme.card,
-            borderColor: theme.subtleBorder,
-          },
-        ]}
-      >
-        <TextInput
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholder="Search habits"
-          placeholderTextColor={theme.textSecondary}
-          style={[styles.searchInput, { color: theme.text }]}
-          multiline={false}
-          numberOfLines={1}
-          returnKeyType="search"
-          blurOnSubmit={false}
-        />
-      </View>
-
-      <View style={styles.filterRowStandalone}>
-        <TouchableOpacity
-          style={[
-            styles.filterChip,
-            completionFilter === 'all' && { backgroundColor: theme.buttonBackground },
-          ]}
-          onPress={() => setCompletionFilter('all')}
-        >
-          <Text style={[styles.filterChipText, { color: theme.text }]}>ALL</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.filterChip,
-            completionFilter === 'done' && { backgroundColor: theme.doneBadgeBg },
-          ]}
-          onPress={() => setCompletionFilter('done')}
-        >
-          <Text
-            style={[
-              styles.filterChipText,
-              { color: completionFilter === 'done' ? theme.primary : theme.text },
-            ]}
-          >
-            DONE
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.filterChip,
-            completionFilter === 'pending' && {
-              backgroundColor: theme.pendingBadgeBg,
-            },
-          ]}
-          onPress={() => setCompletionFilter('pending')}
-        >
-          <Text
-            style={[
-              styles.filterChipText,
-              {
-                color: completionFilter === 'pending'
-                  ? theme.pendingBadgeText
-                  : theme.text,
-              },
-            ]}
-          >
-            PENDING
-          </Text>
-        </TouchableOpacity>
-      </View>
+      <SearchAndFilter
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        completionFilter={completionFilter}
+        onFilterChange={setCompletionFilter}
+      />
 
       <FlatList
         data={filteredHabits}
@@ -396,13 +188,7 @@ const HomeScreen = ({ navigation }: any) => {
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         ListHeaderComponent={renderHeader}
-        ListEmptyComponent={
-          <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
-            {habits.length === 0
-              ? 'No habits yet. Add your first one!'
-              : 'No habits match the current filter.'}
-          </Text>
-        }
+        ListEmptyComponent={<EmptyState hasHabits={habits.length > 0} />}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContainer}
       />
@@ -416,154 +202,14 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 110,
   },
-  headerRightContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  addButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  addButtonText: {
-    fontSize: 13,
-    fontFamily: monoFont,
-    letterSpacing: 0.5,
-  },
   headerSection: {
     marginBottom: 8,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 20,
-  },
-  statCard: {
-    flex: 1,
-    borderRadius: 20,
-    padding: 16,
-    justifyContent: 'center',
-  },
-  streakCard: {
-    borderWidth: 1,
-  },
-  statLabel: {
-    fontSize: 11,
-    fontFamily: monoFont,
-    letterSpacing: 1,
-    marginBottom: 8,
-    textTransform: 'uppercase',
-  },
-  streakValue: {
-    fontSize: 24,
-    fontFamily: monoFont,
-  },
-  doneValue: {
-    fontSize: 24,
-    fontFamily: monoFont,
   },
   sectionTitle: {
     fontSize: 13,
     fontFamily: monoFont,
     letterSpacing: 1,
     marginBottom: 12,
-  },
-  searchRow: {
-    borderWidth: 1,
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    marginHorizontal: 16,
-    marginTop: 12,
-  },
-  searchInput: {
-    fontSize: 14,
-    fontFamily: monoFont,
-    paddingVertical: 6,
-    paddingHorizontal: 2,
-  },
-  filterRowStandalone: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 10,
-    marginBottom: 10,
-    marginHorizontal: 16,
-  },
-  filterChip: {
-    borderRadius: 12,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-  },
-  filterChipText: {
-    fontSize: 13,
-    fontFamily: monoFont,
-    letterSpacing: 0.5,
-  },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    marginBottom: 12,
-  },
-  checkboxWrapper: {
-    marginRight: 14,
-  },
-  cardContent: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  cardTitle: {
-    fontSize: 15,
-    fontFamily: monoFont,
-    letterSpacing: 0.5,
-  },
-  cardSubtitle: {
-    fontSize: 12,
-    fontFamily: monoFont,
-    marginTop: 2,
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-    marginLeft: 8,
-  },
-  statusBadgeText: {
-    fontSize: 12,
-    fontFamily: monoFont,
-    letterSpacing: 0.5,
-  },
-  emptyText: {
-    textAlign: 'center',
-    marginTop: 30,
-    fontSize: 16,
-    fontFamily: monoFont,
-  },
-  selectionBar: {
-    padding: 16,
-    borderBottomWidth: 1,
-  },
-  selectionText: {
-    fontSize: 14,
-    fontFamily: monoFont,
-    marginBottom: 8,
-  },
-  selectionActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  selectionAction: {
-    flex: 1,
-    borderRadius: 16,
-    paddingVertical: 10,
-    marginHorizontal: 4,
-  },
-  selectionActionText: {
-    fontSize: 14,
-    fontFamily: monoFont,
-    textAlign: 'center',
   },
 });
 
