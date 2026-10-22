@@ -25,7 +25,7 @@ const TimePickerInput: React.FC<TimePickerInputProps> = ({
       DateTimePickerAndroid.open({
         value: selectedTime,
         mode: 'time',
-        is24Hour: false,
+        is24Hour: true,
         onChange: (event, date) => {
           if (event.type === 'set' && date) {
             onTimeChange(date);
