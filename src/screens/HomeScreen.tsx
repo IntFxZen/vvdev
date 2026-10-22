@@ -19,7 +19,7 @@ import { formatDateKey } from '../utils/date';
 import { formatHabitSchedule, longestCurrentStreak } from '../utils/habits';
 
 const HomeScreen = ({ navigation }: any) => {
-  const { theme, isDark, toggleTheme } = useTheme();
+  const { theme } = useTheme();
   const [habits, setHabits] = useState<Habit[]>(() => getHabits());
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -48,9 +48,6 @@ const HomeScreen = ({ navigation }: any) => {
       headerShadowVisible: false,
       headerRight: () => (
         <View style={styles.headerRightContainer}>
-          <TouchableOpacity onPress={toggleTheme} style={styles.themeToggleBtn}>
-            <Text style={{ fontSize: 18 }}>{isDark ? '☀️' : '🌙'}</Text>
-          </TouchableOpacity>
           <TouchableOpacity
             style={[
               styles.addButton,
@@ -68,7 +65,7 @@ const HomeScreen = ({ navigation }: any) => {
         </View>
       ),
     });
-  }, [navigation, theme, isDark, toggleTheme, formattedDate]);
+  }, [navigation, theme, formattedDate]);
 
   useFocusEffect(
     useCallback(() => {
@@ -423,9 +420,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginRight: 8,
-  },
-  themeToggleBtn: {
-    marginRight: 12,
   },
   addButton: {
     paddingHorizontal: 12,
