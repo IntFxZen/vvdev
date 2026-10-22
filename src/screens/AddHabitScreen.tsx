@@ -60,12 +60,8 @@ const AddHabitScreen = ({ navigation }: any) => {
   }, [selectedTime]);
 
   const handleEmojiChange = (text: string) => {
-    const chars = Array.from(text);
-    if (chars.length > 0) {
-      setEmoji(chars[chars.length - 1]);
-    } else {
-      setEmoji('');
-    }
+    const emojis = text.match(/\p{Extended_Pictographic}/gu);
+    setEmoji(emojis ? emojis[emojis.length - 1] : '');
   };
 
   const handleSave = () => {
